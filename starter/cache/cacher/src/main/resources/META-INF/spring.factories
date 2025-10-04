@@ -1,0 +1,3 @@
+#ApplicationContextInitializer
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.tkfc.boot.starter.cacher.config.CacherConfig

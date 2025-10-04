@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--author 0neBean-->
+<!--站点域名 mapper-->
+<!--since 2023-10-29 12:24:53-->
+<mapper namespace="com.tkfc.sdk.mapper.GatewaySiteDomainMapper">
+
+    <sql id="basicFiled">
+            t.id,
+            t.operator_name,
+            t.operator_id,
+            t.update_time,
+            t.create_time,
+            t.is_deleted,
+            t.host_name,
+            t.proxy_port,
+            t.ssl_proxy_port,
+            t.is_ssl,
+            t.ssl_crt_key_path,
+            t.ssl_crt_key_path,
+            t.ssl_crt_path
+    </sql>
+
+    <resultMap id="basicResultMap" type="com.tkfc.sdk.model.GatewaySiteDomain">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_id" jdbcType="INTEGER" property="operatorId"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="is_deleted" jdbcType="CHAR" property="isDeleted"/>
+        <result column="host_name" jdbcType="VARCHAR" property="hostName"/>
+        <result column="ssl_crt_key_path" jdbcType="VARCHAR" property="sslCrtKeyPath"/>
+        <result column="ssl_crt_path" jdbcType="VARCHAR" property="sslCrtPath"/>
+    </resultMap>
+
+
+</mapper>

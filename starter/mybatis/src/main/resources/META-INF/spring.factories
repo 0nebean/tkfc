@@ -1,0 +1,6 @@
+# Auto Configure
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.tkfc.boot.starter.mybatis.config.JdbcDataSourceConfig
+#ApplicationContextInitializer
+org.springframework.context.ApplicationContextInitializer=\
+com.tkfc.boot.starter.mybatis.listener.MybatisDataSourceConfigApplicationContextInitializer

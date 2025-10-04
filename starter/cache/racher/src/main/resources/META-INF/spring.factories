@@ -1,0 +1,6 @@
+#autoconfigure
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.tkfc.boot.starter.racher.config.RacherConfig
+#ApplicationContextInitializer
+org.springframework.context.ApplicationContextInitializer=\
+com.tkfc.boot.starter.racher.listener.RacherConfigApplicationContextInitializer

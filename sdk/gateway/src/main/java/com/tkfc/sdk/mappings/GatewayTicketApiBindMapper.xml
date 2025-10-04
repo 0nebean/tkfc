@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--author 0neBean-->
+<!--凭证绑定接口关系 mapper-->
+<!--since 2022-07-20 22:08:33-->
+<mapper namespace="com.tkfc.sdk.mapper.GatewayTicketApiBindMapper">
+
+    <sql id="ApiBasicFiled">
+        api.id,
+            api.operator_name,
+            api.operator_id,
+            api.update_time,
+            api.create_time,
+            api.is_deleted,
+            api.app_key,
+            api.api_name,
+            api.proxy_path,
+            api.api_uri,
+            api.is_lock
+    </sql>
+
+    <sql id="basicFiled">
+            t.id,
+            t.operator_name,
+            t.operator_id,
+            t.update_time,
+            t.create_time,
+            t.is_deleted,
+            t.ticket_id,
+            t.api_id
+    </sql>
+
+    <select id="findBindApiInfo" resultType="com.tkfc.sdk.pojo.vo.GatewayApiVo">
+        select
+        <include refid="ApiBasicFiled"/>
+        ,
+        bind.id as bindId,
+        bind.need_login,
+        bind.call_times_pre_hour,
+        bind.call_times_current_hour,
+        bind.call_times_press_hour
+        from gateway_api api
+        left join gateway_ticket_api_bind bind on bind.api_id = api.id
+        left join gateway_ticket ticket on ticket.id = bind.ticket_id
+        left join gateway_app app on api.app_key = app.app_key
+        where bind.ticket_id = #{ticket}
+        and ticket.is_deleted = '0'
+        and api.is_deleted = '0'
+        <if test="null != searchText and ''!= searchText">
+            <bind name="pattern" value="'%'+_parameter.searchText+'%'" />
+            AND api.api_name LIKE #{pattern}
+        </if>
+        <if test="null != appKey and ''!= appKey">
+            AND app.app_key = #{appKey}
+        </if>
+        order by api.id desc
+    </select>
+
+    <resultMap id="basicResultMap" type="com.tkfc.sdk.model.GatewayTicketApiBind">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_id" jdbcType="INTEGER" property="operatorId"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="is_deleted" jdbcType="CHAR" property="isDeleted"/>
+        <result column="ticket_id" jdbcType="INTEGER" property="ticketId"/>
+        <result column="api_id" jdbcType="INTEGER" property="apiId"/>
+    </resultMap>
+
+
+</mapper>

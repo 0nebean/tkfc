@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--author 0neBean-->
+<!--平台租户信息 mapper-->
+<!--since 2023-03-24 20:55:14-->
+<mapper namespace="com.tkfc.sdk.mapper.GatewayTenantMapper">
+
+    <sql id="basicFiled">
+            t.id,
+            t.operator_name,
+            t.operator_id,
+            t.update_time,
+            t.create_time,
+            t.is_deleted,
+            t.tenant_name,
+            t.is_lock
+    </sql>
+
+    <resultMap id="basicResultMap" type="com.tkfc.sdk.model.GatewayTenant">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_id" jdbcType="INTEGER" property="operatorId"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="is_deleted" jdbcType="CHAR" property="isDeleted"/>
+        <result column="tenant_name" jdbcType="VARCHAR" property="tenantName"/>
+        <result column="is_lock" jdbcType="CHAR" property="isLock"/>
+    </resultMap>
+
+
+    <select id="findBindTenantInfo" resultType="com.tkfc.sdk.model.GatewayTenant">
+        SELECT
+        <include refid="basicFiled"/>
+        FROM gateway_tenant t
+        RIGHT JOIN gateway_tenant_user_bind bind ON t.`id` = bind.`tenant_id`
+        RIGHT JOIN gateway_user_${ticketId} u ON u.`id` = bind.`user_id`
+        WHERE
+        t.is_deleted = '0'
+        AND bind.ticket_id = #{ticketId}
+        AND bind.is_deleted = '0'
+        AND u.is_deleted = '0'
+        AND u.id = #{userId}
+        <if test="null != tenantName and ''!= tenantName">
+            <bind name="pattern" value="'%'+_parameter.tenantName+'%'" />
+            AND t.tenant_name LIKE #{pattern}
+        </if>
+        order by t.id desc
+    </select>
+
+
+</mapper>

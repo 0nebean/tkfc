@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--author 0neBean-->
+<!--平台租户用户关联关系表 mapper-->
+<!--since 2023-03-24 20:28:02-->
+<mapper namespace="com.tkfc.sdk.mapper.GatewayTenantUserBindMapper">
+
+    <sql id="basicFiled">
+            t.id,
+            t.operator_name,
+            t.operator_id,
+            t.update_time,
+            t.create_time,
+            t.is_deleted,
+            t.tenant_id,
+            t.user_id
+    </sql>
+
+    <resultMap id="basicResultMap" type="com.tkfc.sdk.model.GatewayTenantUserBind">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_id" jdbcType="INTEGER" property="operatorId"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="is_deleted" jdbcType="CHAR" property="isDeleted"/>
+        <result column="tenant_id" jdbcType="INTEGER" property="tenantId"/>
+        <result column="user_id" jdbcType="INTEGER" property="userId"/>
+    </resultMap>
+
+
+</mapper>

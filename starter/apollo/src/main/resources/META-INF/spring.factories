@@ -1,0 +1,6 @@
+#ApplicationContextInitializer
+org.springframework.context.ApplicationContextInitializer=\
+com.tkfc.boot.starter.apollo.listener.ApolloPropConfigApplicationContextInitializer
+# Auto Configure
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.tkfc.boot.starter.apollo.refresh.ApolloRefreshAutoConfiguration

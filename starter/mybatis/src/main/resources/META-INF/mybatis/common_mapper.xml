@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace和定义的Mapper接口对应，并实现其中的方法 -->
+<mapper namespace="common">
+
+
+    <!--循环ids-->
+    <sql id="idsForEach">
+        <if test="list != null and list.size() > 0">
+            <foreach collection="list" open="and id in (" separator="," close=")" item="item">
+                #{item.id}
+            </foreach>
+        </if>
+    </sql>
+
+    <!--循环ids-->
+    <sql id="longIdsForEach">
+        <if test="ids != null and ids.size() > 0">
+            <trim suffixOverrides="," prefix="id in (" suffix=")">
+                <foreach collection="ids" item="id" index="index">
+                    <trim suffix=",">
+                        #{id}
+                    </trim>
+                </foreach>
+            </trim>
+        </if>
+    </sql>
+
+    <!--sql条件-->
+    <sql id="beforeWhereSql">
+        1 = 1
+    </sql>
+
+
+    <!--sql条件-->
+    <sql id="conditionSql">
+        <if test="sqlWrapper != null and sqlWrapper.sqlSegment != null and sqlWrapper.sqlSegment != ''">
+            AND ${sqlWrapper.sqlSegment}
+        </if>
+    </sql>
+
+    <!--排序字段-->
+    <sql id="orderBySql">
+        <if test="sqlWrapper != null and sqlWrapper.sort != null and sqlWrapper.sort.orderBy != ''">
+            order by t.${sqlWrapper.sort.orderBy}
+        </if>
+    </sql>
+
+    <!--分组字段-->
+    <sql id="groupBySql">
+        <if test="sqlWrapper != null and sqlWrapper.getGroupByFieldList != null and sqlWrapper.getGroupByFieldList.size() > 0">
+            group by t.${sqlWrapper.groupByFields}
+        </if>
+    </sql>
+
+    <!--排序类型-->
+    <sql id="sortSql">
+        <if test="sqlWrapper != null and sqlWrapper.sort != null and sqlWrapper.sort.sort != ''">
+            ${sqlWrapper.sort.sort}
+        </if>
+    </sql>
+
+    <!--数据权限-->
+    <sql id="dataPermissionJoinSql">
+        <if test="null != sqlWrapper.dp and null != sqlWrapper.dp.hasDataPerm and sqlWrapper.dp.hasDataPerm and null != sqlWrapper.dp.joinSql and '' != sqlWrapper.dp.joinSql">
+            ${sqlWrapper.dp.joinSql}
+        </if>
+    </sql>
+
+    <!--数据权限-->
+    <sql id="dataPermissionPermissionSql">
+        <if test="null != sqlWrapper.dp and null != sqlWrapper.dp.hasDataPerm and sqlWrapper.dp.hasDataPerm and null != sqlWrapper.dp.permissionSql and '' != sqlWrapper.dp.permissionSql">
+            ${sqlWrapper.dp.permissionSql}
+        </if>
+    </sql>
+</mapper>

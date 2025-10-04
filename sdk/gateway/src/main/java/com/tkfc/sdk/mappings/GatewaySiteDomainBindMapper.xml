@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--author 0neBean-->
+<!--站点绑定域名 mapper-->
+<!--since 2023-10-29 12:20:36-->
+<mapper namespace="com.tkfc.sdk.mapper.GatewaySiteDomainBindMapper">
+
+    <sql id="basicFiled">
+            t.id,
+            t.operator_name,
+            t.operator_id,
+            t.update_time,
+            t.create_time,
+            t.is_deleted,
+            t.site_id,
+            t.domain_id
+    </sql>
+
+    <sql id="domainFiled">
+            d.id,
+            d.operator_name,
+            d.operator_id,
+            d.update_time,
+            d.create_time,
+            d.is_deleted,
+            d.host_name,
+            d.proxy_port,
+            d.ssl_proxy_port,
+            d.is_ssl,
+            d.ssl_crt_key_path,
+            d.ssl_crt_path
+    </sql>
+
+    <select id="findBindDomainInfoBySiteIds" resultType="com.tkfc.sdk.pojo.vo.GatewaySiteDomainVo">
+        select
+        <include refid="domainFiled"/>
+        , s.id as siteId
+        , s.site_key as siteKey
+        from gateway_site_domain d
+        left join gateway_site_domain_bind bind on bind.domain_id = d.id
+        left join gateway_site s on s.id = bind.site_id
+        where
+        1=1
+        <if test="siteIds != null and siteIds.size() > 0">
+           and s.id in
+            <foreach collection="siteIds" open="(" close=")" item="id" separator=",">
+                #{id}
+            </foreach>
+        </if>
+        and s.is_deleted = '0'
+        and d.is_deleted = '0'
+        order by d.id desc
+    </select>
+
+    <resultMap id="basicResultMap" type="com.tkfc.sdk.model.GatewaySiteDomainBind">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_id" jdbcType="INTEGER" property="operatorId"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="is_deleted" jdbcType="CHAR" property="isDeleted"/>
+        <result column="site_id" jdbcType="INTEGER" property="siteId"/>
+        <result column="domain_id" jdbcType="INTEGER" property="domainId"/>
+    </resultMap>
+
+
+</mapper>

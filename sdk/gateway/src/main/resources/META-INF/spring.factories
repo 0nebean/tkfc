@@ -1,0 +1,6 @@
+#ApplicationContextInitializer
+org.springframework.context.ApplicationContextInitializer=\
+com.tkfc.sdk.listener.DevopsListener
+# Auto Configure
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.tkfc.sdk.timer.GatewayNoticeSubscriber

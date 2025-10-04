@@ -1,0 +1,7 @@
+#ApplicationContextInitializer
+org.springframework.context.ApplicationContextInitializer=\
+com.tkfc.welus.listener.WelusReadyListener
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.tkfc.welus.config.BeanDefinition,\
+com.tkfc.welus.config.ReturnHandlerConfigurer,\
+com.tkfc.welus.config.WelusConfig

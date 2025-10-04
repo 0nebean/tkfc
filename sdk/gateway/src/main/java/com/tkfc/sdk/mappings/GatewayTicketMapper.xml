@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--author 0neBean-->
+<!--凭证管理 mapper-->
+<!--since 2022-06-08 15:37:11-->
+<mapper namespace="com.tkfc.sdk.mapper.GatewayTicketMapper">
+
+    <sql id="basicFiled">
+            t.id,
+            t.operator_name,
+            t.operator_id,
+            t.update_time,
+            t.create_time,
+            t.is_deleted,
+            t.login_type,
+            t.auth_type,
+            t.static_token,
+            t.ticket_id,
+            t.secret,
+            t.ticket_name,
+            t.is_lock,
+            t.oauth_redirect_url,
+            t.is_lock
+    </sql>
+
+    <resultMap id="basicResultMap" type="com.tkfc.sdk.model.GatewayTicket">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_id" jdbcType="INTEGER" property="operatorId"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="is_deleted" jdbcType="CHAR" property="isDeleted"/>
+        <result column="login_type" jdbcType="CHAR" property="loginType"/>
+        <result column="auth_type" jdbcType="CHAR" property="authType"/>
+        <result column="static_token" jdbcType="VARCHAR" property="staticToken"/>
+        <result column="ticket_id" jdbcType="VARCHAR" property="ticketId"/>
+        <result column="secret" jdbcType="VARCHAR" property="secret"/>
+        <result column="ticket_name" jdbcType="VARCHAR" property="ticketName"/>
+        <result column="is_lock" jdbcType="CHAR" property="isLock"/>
+        <result column="oauth_redirect_url" jdbcType="VARCHAR" property="oauthRedirectUrl"/>
+        <result column="is_lock" jdbcType="CHAR" property="isLock"/>
+    </resultMap>
+
+</mapper>
