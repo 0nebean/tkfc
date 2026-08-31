@@ -302,7 +302,11 @@ public class RacherServiceImpl extends AbstractCache {
     @Override
     public Boolean lpush(String key, Object item) {
         synchronized (QUEUE_LOCK_MONITOR) {
-            return Objects.nonNull(redisTemplate.opsForList().leftPush(key, JsonUtil.toJson(item)));
+            String json = toQueueJson(item);
+            if (StringUtil.isBlank(json)) {
+                return false;
+            }
+            return Objects.nonNull(redisTemplate.opsForList().leftPush(key, json));
         }
     }
 
@@ -337,6 +341,50 @@ public class RacherServiceImpl extends AbstractCache {
         } else {
             return null;
         }
+    }
+
+    @Override
+    public Long llen(String key) {
+        Long size = redisTemplate.opsForList().size(key);
+        return size == null ? 0L : size;
+    }
+
+    @Override
+    public Long lrem(String key, long count, Object item) {
+        String json = toQueueJson(item);
+        if (StringUtil.isBlank(json)) {
+            return 0L;
+        }
+        Long removed = redisTemplate.opsForList().remove(key, count, json);
+        return removed == null ? 0L : removed;
+    }
+
+    @Override
+    public <T> T rpoplpush(String sourceKey, String destinationKey, Class<T> clazz) {
+        String json = redisTemplate.opsForList().rightPopAndLeftPush(sourceKey, destinationKey);
+        if (String.class.isAssignableFrom(clazz)) {
+            return (T) json;
+        }
+        if (StringUtil.isNotBlank(json)) {
+            return JsonUtil.toBean(json, clazz);
+        }
+        return null;
+    }
+
+    @Override
+    public List<String> lrange(String key, long start, long end) {
+        List<String> list = redisTemplate.opsForList().range(key, start, end);
+        return list == null ? Collections.emptyList() : list;
+    }
+
+    private String toQueueJson(Object item) {
+        if (item == null) {
+            return null;
+        }
+        if (item instanceof String) {
+            return (String) item;
+        }
+        return JsonUtil.toJson(item);
     }
 
     @Override

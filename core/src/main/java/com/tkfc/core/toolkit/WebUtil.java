@@ -7,11 +7,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.*;
@@ -429,5 +430,69 @@ public class WebUtil {
         return buildQueryString(params);
     }
 
+    /**
+     * 从URL中提取域名
+     * @param url 完整URL
+     * @return 域名，如果解析失败返回null
+     */
+    public static String extractDomainFromUrl(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            // 如果URL没有协议，先添加http://以便解析
+            String urlToParse = url;
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                urlToParse = "http://" + url;
+            }
+            URL urlObj = new URL(urlToParse);
+            // getHost() 已经返回不包含端口号的域名
+            return urlObj.getHost();
+        } catch (MalformedURLException e) {
+            log.warn("解析URL失败: {}, 错误: {}", url, e.getMessage());
+            // 如果URL解析失败，尝试手动提取域名
+            return extractDomainManually(url);
+        }
+    }
+
+    /**
+     * 手动提取域名（当URL解析失败时的备用方案）
+     * @param url URL字符串
+     * @return 域名，如果提取失败返回null
+     */
+    public static String extractDomainManually(String url) {
+        try {
+            // 移除协议
+            String domain = url;
+            if (domain.startsWith("http://")) {
+                domain = domain.substring(7);
+            } else if (domain.startsWith("https://")) {
+                domain = domain.substring(8);
+            }
+            // 移除路径部分
+            int pathIndex = domain.indexOf("/");
+            if (pathIndex > 0) {
+                domain = domain.substring(0, pathIndex);
+            }
+            // 移除端口号
+            int portIndex = domain.indexOf(":");
+            if (portIndex > 0) {
+                domain = domain.substring(0, portIndex);
+            }
+            // 移除查询参数和锚点
+            int queryIndex = domain.indexOf("?");
+            if (queryIndex > 0) {
+                domain = domain.substring(0, queryIndex);
+            }
+            int hashIndex = domain.indexOf("#");
+            if (hashIndex > 0) {
+                domain = domain.substring(0, hashIndex);
+            }
+            return domain.trim().isEmpty() ? null : domain;
+        } catch (Exception e) {
+            log.warn("手动提取域名失败: {}, 错误: {}", url, e.getMessage());
+            return null;
+        }
+    }
 
 }

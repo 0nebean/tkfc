@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PermissionChecker {
 
-    private final SerializableBiFunction<String[], Boolean, Boolean> consumer;
+    private final SerializableBiFunction<String, Boolean, Boolean> consumer;
 
     /**
      * 检查权限逻辑
@@ -21,7 +21,7 @@ public class PermissionChecker {
      * @param premTags 权限标签
      * @return bool
      */
-    public Boolean checkPrem(String[] premTags, Boolean needLogin) {
+    public Boolean checkPrem(String premTags, Boolean needLogin) {
         return consumer.apply(premTags, needLogin);
     }
 

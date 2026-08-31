@@ -36,6 +36,9 @@ public class CreateJavaTool {
 
 
     private static final String TEMPLATE_CLASS_PATH = "META-INF/mybatis/generate/";
+    private static final Pattern ENUM_TYPE_PATTERN = Pattern.compile("^enum\\s*\\((.*)\\)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ENUM_VALUE_PATTERN = Pattern.compile("'((?:\\\\'|[^'])*)'");
+    private static final Pattern COMMENT_BRACKET_PATTERN = Pattern.compile("[（(]([^（）()]*)[）)]");
     private static String modelStaticFile;
     private static Boolean isSplitTable = Boolean.FALSE;
     private static Boolean geneVo = Boolean.TRUE;
@@ -48,6 +51,7 @@ public class CreateJavaTool {
     private JTextField component_path_text;
     private JTextField icon_text;
     private JTextField modelPath_text;
+    private JTextField enumsPath_text;
     private JTextField daoPath_text;
     private JTextField servicePath_text;
     private JTextField voPath_text;
@@ -59,6 +63,7 @@ public class CreateJavaTool {
     private JComboBox<String> generate_vo;
     private JComboBox<String> gene_data_type;
     private JComboBox<String> gene_range;
+    private JButton confirmBtn;
 
     private String projectPath;
     private String xmlPath;
@@ -67,10 +72,12 @@ public class CreateJavaTool {
     private String servicePath;
     private String serviceImplPath;
     private String modelPath;
+    private String enumsPath;
     private String voPath;
     private String actionPath;
     private String daoPackageName;
     private String modelPackageName;
+    private String enumsPackageName;
     private String voPackageName;
     private String actionPackageName;
     private String servicePackageName;
@@ -82,7 +89,7 @@ public class CreateJavaTool {
     private Map<String, Object> geneParam;
 
     private static final int WIN_WIDTH = 525;
-    private static final int WIN_HEIGHT = 780;
+    private static final int WIN_HEIGHT = 810;
     private static int ELEMENT_START_Y = 20;
 
     public CreateJavaTool() {
@@ -220,7 +227,14 @@ public class CreateJavaTool {
         tabName_text = new JTextField(30);
         tabName_text.setBounds(100, ELEMENT_START_Y, 375, 30);
         tabName_text.getDocument().addDocumentListener(inputEvent(() -> {
-            String tabName = tabName_text.getText();
+            String tabName = tabName_text.getText().trim();
+            confirmBtn.setEnabled(Boolean.FALSE);
+            if (StringUtil.isEmpty(tabName)) {
+                description_text.setText(StringPool.EMPTY);
+                modelName_text.setText(StringPool.EMPTY);
+                permShortName_text.setText(StringPool.EMPTY);
+                return;
+            }
             description_text.setText(getTableComment(tabName));
             if (tabName.contains(StringPool.UNDERSCORE)) {
                 String premShortName = "PERM" + tabName.substring(tabName.indexOf(StringPool.UNDERSCORE)).toUpperCase();
@@ -228,9 +242,17 @@ public class CreateJavaTool {
                 permShortName_text.setText(premShortName);
             }
             if (isSplitTable) {
-                modelName_text.setText(modelName_text.getText().substring(0, modelName_text.getText().length() - 1));
-                permShortName_text.setText(permShortName_text.getText().substring(0, permShortName_text.getText().lastIndexOf(StringPool.UNDERSCORE)));
+                String modelName = modelName_text.getText();
+                if (StringUtil.isNotEmpty(modelName) && modelName.length() > 1) {
+                    modelName_text.setText(modelName.substring(0, modelName.length() - 1));
+                }
+                String permShortName = permShortName_text.getText();
+                int underscoreIndex = permShortName.lastIndexOf(StringPool.UNDERSCORE);
+                if (underscoreIndex > 0) {
+                    permShortName_text.setText(permShortName.substring(0, underscoreIndex));
+                }
             }
+            confirmBtn.setEnabled(Boolean.TRUE);
         }));
         frame.add(tabName_text);
         moveItemY();
@@ -293,6 +315,14 @@ public class CreateJavaTool {
         frame.add(modelPath_text);
         moveItemY();
 
+        lab = new JLabel("Enum路径:");
+        lab.setBounds(20, ELEMENT_START_Y, 100, 30);
+        frame.add(lab);
+        enumsPath_text = new JTextField(30);
+        enumsPath_text.setBounds(100, ELEMENT_START_Y, 375, 30);
+        frame.add(enumsPath_text);
+        moveItemY();
+
         lab = new JLabel("Vo路径:");
         lab.setBounds(20, ELEMENT_START_Y, 100, 30);
         frame.add(lab);
@@ -333,10 +363,11 @@ public class CreateJavaTool {
         frame.add(pagePath_text);
         moveItemY();
 
-        JButton btn = new JButton("确定");
-        btn.setBounds(WIN_WIDTH / 2 - 50 / 2, ELEMENT_START_Y, 80, 30);
-        btn.addActionListener(e -> generate());
-        frame.add(btn);
+        confirmBtn = new JButton("确定");
+        confirmBtn.setBounds(WIN_WIDTH / 2 - 50 / 2, ELEMENT_START_Y, 80, 30);
+        confirmBtn.setEnabled(Boolean.FALSE);
+        confirmBtn.addActionListener(e -> generate());
+        frame.add(confirmBtn);
         frame.setVisible(true);
         frame.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
@@ -394,10 +425,12 @@ public class CreateJavaTool {
         servicePath = PropUtil.getInstance().getConfig("spring.datasource.generate.service.path");
         serviceImplPath = PropUtil.getInstance().getConfig("spring.datasource.generate.service.impl.path");
         modelPath = PropUtil.getInstance().getConfig("spring.datasource.generate.model.path");
+        enumsPath = PropUtil.getInstance().getConfig("spring.datasource.generate.enums.path");
         voPath = PropUtil.getInstance().getConfig("spring.datasource.generate.vo.path");
         actionPath = PropUtil.getInstance().getConfig("spring.datasource.generate.action.path");
         daoPackageName = PropUtil.getInstance().getConfig("spring.datasource.generate.mapper.package");
         modelPackageName = PropUtil.getInstance().getConfig("spring.datasource.generate.model.package");
+        enumsPackageName = PropUtil.getInstance().getConfig("spring.datasource.generate.enums.package");
         voPackageName = PropUtil.getInstance().getConfig("spring.datasource.generate.vo.package");
         servicePackageName = PropUtil.getInstance().getConfig("spring.datasource.generate.service.package");
         actionPackageName = PropUtil.getInstance().getConfig("spring.datasource.generate.action.package");
@@ -408,19 +441,27 @@ public class CreateJavaTool {
         databasePassword = PropUtil.getInstance().getConfig("spring.datasource.password");
 
         createTimeStr = DateUtil.getCurrentDateFormatString();
+        if (StringUtil.isEmpty(enumsPath)) {
+            enumsPath = modelPath + "enums" + StringPool.SLASH;
+        }
+        if (StringUtil.isEmpty(enumsPackageName)) {
+            enumsPackageName = modelPackageName + ".enums";
+        }
         SystemTypeEnum osType = EnvUtil.getOsType();
         if (Objects.equals(osType, SystemTypeEnum.LINUX) || Objects.equals(osType, SystemTypeEnum.MAC)) {
-            xmlPath = xmlPath.replace(StringPool.BACK_SLASH,StringPool.SLASH);
-            mapperPath = mapperPath.replace(StringPool.BACK_SLASH,StringPool.SLASH);
-            modelPath = modelPath.replace(StringPool.BACK_SLASH,StringPool.SLASH);
-            servicePath = servicePath.replace(StringPool.BACK_SLASH,StringPool.SLASH);
-            serviceImplPath = serviceImplPath.replace(StringPool.BACK_SLASH,StringPool.SLASH);
-            voPath = voPath.replace(StringPool.BACK_SLASH,StringPool.SLASH);
-            actionPath = actionPath.replace(StringPool.BACK_SLASH,StringPool.SLASH);
-            pagePath = pagePath.replace(StringPool.BACK_SLASH,StringPool.SLASH);
+            xmlPath = xmlPath.replace(StringPool.BACK_SLASH, StringPool.SLASH);
+            mapperPath = mapperPath.replace(StringPool.BACK_SLASH, StringPool.SLASH);
+            modelPath = modelPath.replace(StringPool.BACK_SLASH, StringPool.SLASH);
+            enumsPath = enumsPath.replace(StringPool.BACK_SLASH, StringPool.SLASH);
+            servicePath = servicePath.replace(StringPool.BACK_SLASH, StringPool.SLASH);
+            serviceImplPath = serviceImplPath.replace(StringPool.BACK_SLASH, StringPool.SLASH);
+            voPath = voPath.replace(StringPool.BACK_SLASH, StringPool.SLASH);
+            actionPath = actionPath.replace(StringPool.BACK_SLASH, StringPool.SLASH);
+            pagePath = pagePath.replace(StringPool.BACK_SLASH, StringPool.SLASH);
         }
         daoPath_text.setText(mapperPath);
         modelPath_text.setText(modelPath);
+        enumsPath_text.setText(enumsPath);
         servicePath_text.setText(servicePath);
         voPath_text.setText(voPath);
         actionPath_text.setText(actionPath);
@@ -474,6 +515,7 @@ public class CreateJavaTool {
             }
 
             fillGeneParamMap();
+            generateEnumFiles();//生成枚举文件
             if (geneVo) {
                 generateVoFile();//生成vo文件
             }
@@ -612,7 +654,9 @@ public class CreateJavaTool {
     private void fillGeneParamMap() {
         geneParam = new HashMap<>();
         List<Map<String, Object>> fields = coverField(getColumns(tabName_text.getText()));
+        List<Map<String, Object>> enumFieldArr = buildEnumFieldArr(fields);
         geneParam.put("fieldArr", fields);
+        geneParam.put("enumFieldArr", enumFieldArr);
         geneParam.put("createTime", createTimeStr);
         geneParam.put("author", author_text.getText());
         geneParam.put("permShortName", permShortName_text.getText().toUpperCase());
@@ -624,6 +668,7 @@ public class CreateJavaTool {
         }
         geneParam.put("modelName", modelName_text.getText());
         geneParam.put("modelPackageName", modelPackageName);
+        geneParam.put("enumsPackageName", enumsPackageName);
         geneParam.put("description", description_text.getText());
         geneParam.put("actionPackageName", actionPackageName);
         geneParam.put("servicePackageName", servicePackageName);
@@ -635,6 +680,114 @@ public class CreateJavaTool {
         modelStaticFile = geneParam.get("modelVarName").toString() + StringPool.SLASH;
     }
 
+    private List<Map<String, Object>> buildEnumFieldArr(List<Map<String, Object>> fields) {
+        List<Map<String, Object>> enumFieldArr = new ArrayList<>();
+        for (Map<String, Object> field : fields) {
+            if (!Boolean.TRUE.equals(field.get("isEnum"))) {
+                continue;
+            }
+            Map<String, Object> enumField = new HashMap<>();
+            String originalName = field.get("originalName").toString();
+            String enumClassName = buildEnumClassName(originalName);
+            enumField.put("enumClassName", enumClassName);
+            enumField.put("enumPackageName", enumsPackageName);
+            enumField.put("enumDescription", field.get("comment"));
+            enumField.put("enumGroupVal", buildEnumGroupVal(originalName));
+            enumField.put("enumGroupDic", field.get("comment"));
+            enumField.put("createTime", createTimeStr);
+            enumField.put("author", author_text.getText());
+            enumField.put("enumItems", buildEnumItems(field.get("enumValues"), parseEnumDescriptionMap(field.get("rawComment"))));
+            enumFieldArr.add(enumField);
+        }
+        return enumFieldArr;
+    }
+
+    private String buildEnumGroupVal(String fieldOriginalName) {
+        String modelName = modelName_text.getText();
+        String modelPrefix = StringUtil.camelCaseToUnderline(modelName).toUpperCase(Locale.ROOT).replaceAll("^_+", StringPool.EMPTY);
+        String fieldSuffix = fieldOriginalName.toUpperCase(Locale.ROOT);
+        return modelPrefix + StringPool.UNDERSCORE + fieldSuffix;
+    }
+
+    private List<Map<String, Object>> buildEnumItems(Object enumValuesObj, Map<String, String> enumDescMap) {
+        List<Map<String, Object>> enumItems = new ArrayList<>();
+        if (!(enumValuesObj instanceof List<?> enumValues)) {
+            return enumItems;
+        }
+        Set<String> existNameSet = new HashSet<>();
+        int sort = 0;
+        for (Object enumValueObj : enumValues) {
+            if (enumValueObj == null) {
+                continue;
+            }
+            String enumValue = enumValueObj.toString();
+            String enumName = toEnumConstantName(enumValue);
+            if (existNameSet.contains(enumName)) {
+                enumName = enumName + StringPool.UNDERSCORE + sort;
+            }
+            existNameSet.add(enumName);
+            Map<String, Object> enumItem = new HashMap<>();
+            enumItem.put("name", enumName);
+            enumItem.put("value", enumValue);
+            enumItem.put("description", enumDescMap.getOrDefault(enumValue, enumValue));
+            enumItem.put("sort", sort++);
+            enumItems.add(enumItem);
+        }
+        return enumItems;
+    }
+
+    private String toEnumConstantName(String value) {
+        if (StringUtil.isEmpty(value)) {
+            return "UNKNOWN";
+        }
+        String enumName = value.trim().replaceAll("[^a-zA-Z0-9]+", StringPool.UNDERSCORE).toUpperCase(Locale.ROOT);
+        enumName = enumName.replaceAll("^_+", StringPool.EMPTY).replaceAll("_+$", StringPool.EMPTY);
+        if (StringUtil.isEmpty(enumName)) {
+            return "UNKNOWN";
+        }
+        if (Character.isDigit(enumName.charAt(0))) {
+            return "ENUM_" + enumName;
+        }
+        return enumName;
+    }
+
+    private void generateEnumFiles() throws Exception {
+        List<Map<String, Object>> enumFieldArr = getEnumFieldArr();
+        if (CollectionUtil.isEmpty(enumFieldArr)) {
+            return;
+        }
+        for (Map<String, Object> enumField : enumFieldArr) {
+            String enumClassName = enumField.get("enumClassName").toString();
+            String enumPackageName = enumField.get("enumPackageName").toString();
+            String path = projectPath + enumsPath_text.getText() + enumClassName + ".java";
+            Map<String, Object> enumDataMap = new HashMap<>(enumField);
+            enumDataMap.put("enumPackageName", enumPackageName);
+            enumDataMap.put("enumClassName", enumClassName);
+            File enumFile = new File(path);
+            generateFileByTemplate("Enum.ftl", enumFile, enumDataMap);
+        }
+    }
+
+    private List<Map<String, Object>> getEnumFieldArr() {
+        Object enumFieldObj = geneParam.get("enumFieldArr");
+        if (!(enumFieldObj instanceof List<?> enumFieldList)) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> enumFieldArr = new ArrayList<>();
+        for (Object item : enumFieldList) {
+            if (item instanceof Map<?, ?> mapItem) {
+                Map<String, Object> enumField = new HashMap<>();
+                for (Map.Entry<?, ?> entry : mapItem.entrySet()) {
+                    if (entry.getKey() != null) {
+                        enumField.put(entry.getKey().toString(), entry.getValue());
+                    }
+                }
+                enumFieldArr.add(enumField);
+            }
+        }
+        return enumFieldArr;
+    }
+
     private List<Map<String, Object>> coverField(List<Map<String, Object>> columns) {
         List<Map<String, Object>> res = new ArrayList<>();
         for (Map<String, Object> column : columns) {
@@ -644,6 +797,9 @@ public class CreateJavaTool {
                 continue;
             }
             String type = column.get("type").toString();
+            String rawType = column.get("rawType").toString();
+            String rawComment = Objects.toString(column.get("comment"), StringPool.EMPTY);
+            String cleanComment = stripCommentBracketContent(rawComment);
             String classes = BeanUtil.getJavaTypeByJdbcType(type);
             resMap.put("originalName", field);
             String method_name = StringUtil.replaceUnderLineToClassNameCase(field);
@@ -653,13 +809,91 @@ public class CreateJavaTool {
             if (method_name.equals("tenantId")) {
                 classes = "String";
             }
-            resMap.put("jdbcType", BeanUtil.covertJdbcType2MybatisType(type));
+            List<String> enumValues = extractEnumValues(rawType);
+            boolean isEnum = CollectionUtil.isNotEmpty(enumValues);
+            if (isEnum) {
+                classes = buildEnumClassName(field);
+            }
+            String jdbcType = BeanUtil.covertJdbcType2MybatisType(type);
+            if (isEnum) {
+                // MyBatis JdbcType 不支持 ENUM，数据库 enum 列按 VARCHAR 处理
+                jdbcType = "VARCHAR";
+            }
+            resMap.put("jdbcType", jdbcType);
             resMap.put("columnType", classes);
             resMap.put("columnName", StringUtil.toLowerCaseFirstOne(method_name));
-            resMap.put("comment", column.get("comment").toString());
+            resMap.put("comment", cleanComment);
+            resMap.put("rawComment", rawComment);
+            resMap.put("isEnum", isEnum);
+            resMap.put("enumClassName", buildEnumClassName(field));
+            resMap.put("enumPackageName", enumsPackageName);
+            resMap.put("enumGroupVal", buildEnumGroupVal(field));
+            resMap.put("enumValues", enumValues);
             res.add(resMap);
         }
         return res;
+    }
+
+    private String buildEnumClassName(String fieldOriginalName) {
+        return modelName_text.getText() + StringUtil.replaceUnderLineToClassNameCase(fieldOriginalName) + "Enum";
+    }
+
+    private List<String> extractEnumValues(String rawType) {
+        List<String> enumValues = new ArrayList<>();
+        if (StringUtil.isEmpty(rawType)) {
+            return enumValues;
+        }
+        Matcher enumTypeMatcher = ENUM_TYPE_PATTERN.matcher(rawType.trim());
+        if (!enumTypeMatcher.find()) {
+            return enumValues;
+        }
+        String enumValuesStr = enumTypeMatcher.group(1);
+        Matcher enumValueMatcher = ENUM_VALUE_PATTERN.matcher(enumValuesStr);
+        while (enumValueMatcher.find()) {
+            enumValues.add(enumValueMatcher.group(1).replace("\\'", "'"));
+        }
+        return enumValues;
+    }
+
+    private String stripCommentBracketContent(String rawComment) {
+        if (StringUtil.isEmpty(rawComment)) {
+            return StringPool.EMPTY;
+        }
+        return rawComment.replaceAll("\\s*[（(].*[)）]\\s*$", StringPool.EMPTY).trim();
+    }
+
+    private Map<String, String> parseEnumDescriptionMap(Object rawCommentObj) {
+        Map<String, String> enumDescMap = new HashMap<>();
+        if (rawCommentObj == null) {
+            return enumDescMap;
+        }
+        String rawComment = rawCommentObj.toString();
+        if (StringUtil.isEmpty(rawComment)) {
+            return enumDescMap;
+        }
+        Matcher bracketMatcher = COMMENT_BRACKET_PATTERN.matcher(rawComment);
+        while (bracketMatcher.find()) {
+            String bracketText = bracketMatcher.group(1);
+            if (StringUtil.isEmpty(bracketText)) {
+                continue;
+            }
+            String[] pairs = bracketText.split("[,，]");
+            for (String pair : pairs) {
+                if (StringUtil.isEmpty(pair)) {
+                    continue;
+                }
+                String[] keyValue = pair.split("[:：]", 2);
+                if (keyValue.length != 2) {
+                    continue;
+                }
+                String key = keyValue[0].trim();
+                String value = keyValue[1].trim();
+                if (StringUtil.isNotEmpty(key) && StringUtil.isNotEmpty(value)) {
+                    enumDescMap.put(key, value);
+                }
+            }
+        }
+        return enumDescMap;
     }
 
     /**
@@ -724,6 +958,7 @@ public class CreateJavaTool {
                 m.put("name", rs.getString("Field"));
                 m.put("comment", rs.getString("Comment"));
                 String jdbcType = rs.getString("Type");
+                m.put("rawType", jdbcType);
                 if (StringUtil.isNotEmpty(jdbcType) && jdbcType.contains("(")) {
                     jdbcType = jdbcType.substring(0, jdbcType.indexOf("("));
                 }
@@ -764,6 +999,8 @@ public class CreateJavaTool {
 
             @Override
             public void removeUpdate(DocumentEvent e) {
+                AsyncUtil.sleep(500);
+                closure.accept();
             }
 
             @Override

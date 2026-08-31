@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--author 0neBean-->
+<!--调用统计 mapper-->
+<!--since 2024-12-19-->
+<mapper namespace="com.tkfc.sdk.mapper.GatewayCallTimesMapper">
+
+    <sql id="basicFiled">
+        t.id,
+        t.operator_name,
+        t.operator_id,
+        t.update_time,
+        t.create_time,
+        t.is_deleted,
+        t.ticket_id,
+        t.api_id,
+        t.count_type,
+        t.data_code,
+        t.call_times_current_day
+    </sql>
+
+    <resultMap id="basicResultMap" type="com.tkfc.sdk.model.GatewayCallTimes">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="operator_id" jdbcType="INTEGER" property="operatorId"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="is_deleted" jdbcType="CHAR" property="isDeleted"/>
+        <result column="ticket_id" jdbcType="VARCHAR" property="ticketId"/>
+        <result column="api_id" jdbcType="INTEGER" property="apiId"/>
+        <result column="count_type" jdbcType="CHAR" property="countType"/>
+        <result column="data_code" jdbcType="VARCHAR" property="dataCode"/>
+        <result column="call_times_current_day" jdbcType="INTEGER" property="callTimes"/>
+    </resultMap>
+
+
+</mapper>
+

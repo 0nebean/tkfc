@@ -16,6 +16,8 @@ import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.io.FileUtils;
 
 import java.io.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -96,7 +98,7 @@ public class AliyunOssUtil {
         InputStream in = new URL(fileOriginalUrl).openStream();
         // 将文件转换成字节数组
         byte[] bytes = IOUtils.toByteArray(in);
-        String localFilePath = String.format("%s%s", tempFilePath, fileName);
+        String localFilePath = java.lang.String.format("%s%s", tempFilePath, fileName);
         File localFile = new File(localFilePath);
         // 导出路径和文件格式
         FileUtils.writeByteArrayToFile(localFile, bytes);
@@ -271,6 +273,43 @@ public class AliyunOssUtil {
             targetPath = targetPath.substring(1);
         }
         return targetPath;
+    }
+
+    /**
+     * 私有文件生成临时访问路径
+     * @param key 访问文件 实例(20220331/2f5837e548674a288f6ecdbb2f0012dc.jpg)
+     * @return 可以访问的URL
+     */
+    public static String covertAccessUrl(OssConfig config, String bucketName, String key) {
+        return covertAccessUrl(config, bucketName, key, null);
+    }
+
+    /**
+     * 私有文件生成临时访问路径
+     * @param config 访问配置
+     * @param bucketName 桶名称
+     * @param filePath 文件路径
+     * @param expiration 过期时间
+     * @return 访问路径
+     */
+    public static String covertAccessUrl(OssConfig config, String bucketName, String filePath, Long expiration)  {
+        OSS ossClient = initClient(config);
+        // 设置URL过期时间为1小时
+        if (Objects.isNull(expiration)) {
+            expiration = 3600 * 1000L;
+        }
+        Date expirationDate = new Date(new Date().getTime() + expiration);
+        GeneratePresignedUrlRequest generatePresignedUrlRequest;
+        generatePresignedUrlRequest = new GeneratePresignedUrlRequest(bucketName, filePath);
+        generatePresignedUrlRequest.setExpiration(expirationDate);
+        URL url = ossClient.generatePresignedUrl(generatePresignedUrlRequest);
+        URI uri;
+        try {
+            uri = url.toURI();
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+        return uri.getRawPath() + (uri.getRawQuery() != null ? "?" + uri.getRawQuery() : "");
     }
 
 }

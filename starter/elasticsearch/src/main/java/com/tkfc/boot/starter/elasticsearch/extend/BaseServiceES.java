@@ -1,64 +1,67 @@
 package com.tkfc.boot.starter.elasticsearch.extend;
 
-import com.tkfc.boot.starter.elasticsearch.pojo.PaginationES;
-import com.tkfc.boot.starter.elasticsearch.pojo.SortES;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
+import co.elastic.clients.elasticsearch.core.BulkResponse;
+import co.elastic.clients.elasticsearch.core.DeleteResponse;
+import co.elastic.clients.elasticsearch.core.IndexResponse;
+import co.elastic.clients.elasticsearch.core.SearchRequest.Builder;
+import co.elastic.clients.elasticsearch.core.UpdateResponse;
+import co.elastic.clients.json.JsonData;
+import com.tkfc.core.common.pojo.Pagination;
+import com.tkfc.core.common.pojo.Sort;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface BaseServiceES<T extends BaseModelES> {
 
     /**
      * 检查索引是否存在。
      *
-     * @return 如果索引存在则返回true，否则返回false
-     * @throws ElasticsearchException 如果在检查索引是否存在时发生IO异常
+     * @return 如果索引存在则返回 true，否则返回 false
      */
     Boolean existIndex();
 
     /**
-     * 创建一个新的Elasticsearch索引请求。
+     * 创建一个新的 Elasticsearch 索引请求。
      *
-     * @param shards    索引的主分片数量
-     * @param replicas  每个主分片的副本数量
-     * @throws ElasticsearchException 如果创建索引时发生IO异常或者索引已存在
+     * @param shards   索引的主分片数量
+     * @param replicas 每个主分片的副本数量
      */
     void createIndex(int shards, int replicas);
 
     /**
-     * 发送一个PUT请求来更新指定索引的映射。
-     *
-     * @throws ElasticsearchException 如果在处理ESField注解时发现name或type属性未指定，或者在发送请求时发生IO异常
+     * 创建一个新的 Elasticsearch 索引请求。
+     */
+    void createIndex();
+
+    /**
+     * 创建一个新的 Elasticsearch 索引请求 如果不存在。
+     */
+    void createIndexIfNotExist();
+
+    /**
+     * 发送一个 PUT 请求来更新指定索引的映射。
      */
     void putMappingRequest();
 
     /**
-     * 删除Elasticsearch索引。
-     *
-     * @throws ElasticsearchException 如果删除索引时发生IO异常
+     * 删除 Elasticsearch 索引。
      */
     void deleteIndex();
 
     /**
-     * 根据ID删除文档
+     * 根据 ID 删除文档
      *
-     * @param id 文档ID
+     * @param id 文档 ID
      * @return 删除响应
-     * @throws ElasticsearchException 如果删除失败
      */
     DeleteResponse deleteById(String id);
 
     /**
      * 批量删除文档
      *
-     * @param ids 文档ID列表
+     * @param ids 文档 ID 列表
      * @return 批量删除响应
-     * @throws ElasticsearchException 如果批量删除失败
      */
     BulkResponse deleteByIds(List<String> ids);
 
@@ -67,7 +70,6 @@ public interface BaseServiceES<T extends BaseModelES> {
      *
      * @param document 要保存的文档
      * @return 索引响应
-     * @throws ElasticsearchException 如果保存失败
      */
     IndexResponse index(T document);
 
@@ -76,7 +78,6 @@ public interface BaseServiceES<T extends BaseModelES> {
      *
      * @param documents 要保存的文档列表
      * @return 批量索引响应
-     * @throws ElasticsearchException 如果批量保存失败
      */
     BulkResponse indexBatch(List<T> documents);
 
@@ -85,111 +86,100 @@ public interface BaseServiceES<T extends BaseModelES> {
      *
      * @param document 要更新的文档
      * @return 更新响应
-     * @throws ElasticsearchException 如果更新失败
      */
-    UpdateResponse update(T document);
+    UpdateResponse<JsonData> update(T document);
 
     /**
      * 批量更新文档
      *
-     * @param documents 要更新的文档列表，需要包含ID
+     * @param documents 要更新的文档列表，需要包含 ID
      * @return 批量更新响应
-     * @throws ElasticsearchException 如果批量更新失败
      */
     BulkResponse updateBatch(List<T> documents);
 
     /**
-     * 根据ID查询单条数据
+     * 根据 ID 查询单条数据
      *
-     * @param id 文档ID
-     * @return 单条搜索结果，如果没有找到则返回null
-     * @throws ElasticsearchException 如果查询失败
+     * @param id 文档 ID
+     * @return 单条搜索结果，如果没有找到则返回 null
      */
     T findById(String id);
 
     /**
-     * 根据ID列表批量查询数据
+     * 根据 ID 列表批量查询数据
      *
-     * @param ids 文档ID列表
+     * @param ids 文档 ID 列表
      * @return 搜索结果列表
-     * @throws ElasticsearchException 如果查询失败
      */
     List<T> findByIds(List<String> ids);
 
     /**
-     * 根据SearchSourceBuilder进行查询
+     * 使用 Elasticsearch Java API Client 构建查询
      *
-     * @param searchSourceBuilder 搜索源构建器
-     * @param pagination 分页参数
-     * @param sort 排序参数
+     * @param kql 搜索条件
+     * @param pagination       分页参数
+     * @param sort               排序参数
      * @return 搜索结果列表
-     * @throws ElasticsearchException 如果查询失败
      */
-    List<T> find(SearchSourceBuilder searchSourceBuilder, PaginationES pagination, SortES sort);
+    List<T> find(Consumer<Builder> kql,
+                 Pagination pagination, Sort sort);
 
     /**
-     * 根据SearchSourceBuilder进行查询（简化版本）
+     * 根据搜索条件进行查询（简化版本）
      *
-     * @param searchSourceBuilder 搜索源构建器
+     * @param kql 搜索条件
      * @return 搜索结果列表
-     * @throws ElasticsearchException 如果查询失败
      */
-    List<T> find(SearchSourceBuilder searchSourceBuilder);
+    List<T> find(Consumer<Builder> kql);
 
     /**
-     * 根据SearchSourceBuilder进行查询（带排序）
+     * 根据搜索条件进行查询（带排序）
      *
-     * @param searchSourceBuilder 搜索源构建器
-     * @param sort 排序参数
+     * @param kql 搜索条件
+     * @param sort               排序参数
      * @return 搜索结果列表
-     * @throws ElasticsearchException 如果查询失败
      */
-    List<T> find(SearchSourceBuilder searchSourceBuilder, SortES sort);
+    List<T> find(Consumer<Builder> kql, Sort sort);
 
     /**
-     * 根据SearchSourceBuilder进行查询，只返回一条数据
+     * 根据搜索条件进行查询，只返回一条数据
      *
-     * @param searchSourceBuilder 搜索源构建器
-     * @return 单条搜索结果，如果没有找到则返回null
-     * @throws ElasticsearchException 如果查询失败
+     * @param kql 搜索条件
+     * @return 单条搜索结果，如果没有找到则返回 null
      */
-    T findOne(SearchSourceBuilder searchSourceBuilder);
+    T findOne(Consumer<Builder> kql);
 
     /**
-     * 根据SearchSourceBuilder进行查询，只返回一条数据（带排序）
+     * 根据搜索条件进行查询，只返回一条数据（带排序）
      *
-     * @param searchSourceBuilder 搜索源构建器
-     * @param sort 排序参数
-     * @return 单条搜索结果，如果没有找到则返回null
-     * @throws ElasticsearchException 如果查询失败
+     * @param kql 搜索条件
+     * @param sort               排序参数
+     * @return 单条搜索结果，如果没有找到则返回 null
      */
-    T findOne(SearchSourceBuilder searchSourceBuilder, SortES sort);
+    T findOne(Consumer<Builder> kql, Sort sort);
 
     /**
-     * 根据SearchSourceBuilder进行查询，只返回一条数据（带分页和排序）
+     * 根据搜索条件进行查询，只返回一条数据（带分页和排序）
      *
-     * @param searchSourceBuilder 搜索源构建器
-     * @param pagination 分页参数
-     * @param sort 排序参数
-     * @return 单条搜索结果，如果没有找到则返回null
-     * @throws ElasticsearchException 如果查询失败
+     * @param kql 搜索条件
+     * @param pagination       分页参数
+     * @param sort               排序参数
+     * @return 单条搜索结果，如果没有找到则返回 null
      */
-    T findOne(SearchSourceBuilder searchSourceBuilder, PaginationES pagination, SortES sort);
+    T findOne(Consumer<Builder> kql, Pagination pagination, Sort sort);
 
     /**
      * 统计当前索引下的数据总数
      *
      * @return 数据总数
-     * @throws ElasticsearchException 如果查询失败
      */
     Long count();
 
     /**
-     * 根据SearchSourceBuilder统计符合条件的文档数量
+     * 根据搜索条件统计符合条件的文档数量
      *
-     * @param searchSourceBuilder 搜索源构建器
+     * @param kql 搜索条件
      * @return 符合条件的文档数量
-     * @throws ElasticsearchException 如果查询失败
      */
-    Long count(SearchSourceBuilder searchSourceBuilder);
+    Long count(Consumer<Builder> kql);
 }

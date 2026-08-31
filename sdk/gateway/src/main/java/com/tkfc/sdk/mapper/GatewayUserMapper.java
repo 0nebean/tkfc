@@ -12,4 +12,13 @@ import com.tkfc.sdk.model.GatewayUser;
 
 public interface GatewayUserMapper extends BaseSplitMapper<GatewayUser> {
 
+    /**
+     * 检查是否存在与给定票证ID相对应的表。
+     *
+     * @param ticketId 要检查的机票的ID
+     * @return true if the table exists, false otherwise
+     */
+    Boolean tableExists(String ticketId);
+
+
 }

@@ -20,12 +20,6 @@ import lombok.*;
 @Builder
 public class GatewayUser extends BaseModel {
 
-
-    /**
-     * 租户ID
-     */
-    @FiledName("tenant_id")
-    private String tenantId;
     /**
      * 邮件
      */

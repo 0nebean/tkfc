@@ -1,3 +1,0 @@
-#ApplicationContextInitializer
-org.springframework.context.ApplicationContextInitializer=\
-com.tkfc.boot.starter.opencv.listener.OpenCvEnvInitApplicationContextInitializer

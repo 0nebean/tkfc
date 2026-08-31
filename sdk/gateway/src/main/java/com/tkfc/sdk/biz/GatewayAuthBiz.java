@@ -1,6 +1,7 @@
 package com.tkfc.sdk.biz;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.tkfc.boot.starter.mybatis.extend.BaseVo;
 import com.tkfc.cache.base.interfaces.ICacheService;
 import com.tkfc.cache.base.interfaces.ILock;
 import com.tkfc.core.enums.OsTypeEnum;
@@ -15,7 +16,6 @@ import com.tkfc.sdk.model.GatewayUser;
 import com.tkfc.sdk.pojo.dto.*;
 import com.tkfc.sdk.pojo.vo.*;
 import com.tkfc.sdk.service.GatewayTenantService;
-import com.tkfc.sdk.service.GatewayTicketService;
 import com.tkfc.sdk.service.GatewayUserService;
 import com.tkfc.sdk.utils.GatewayAuthUtil;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * 网关鉴权领域服务
@@ -59,8 +60,13 @@ public class GatewayAuthBiz {
 
     private final ICacheService cacheService;
     private final GatewayUserService userService;
-    private final GatewayTicketService ticketService;
     private final GatewayTenantService tenantService;
+
+    public GatewayTicket getTicketInfo(String ticketId) {
+        String groupKey = String.format("gateway:accessInfo:%s", ticketId);
+        String ticketInfoKey = String.format("%s:ticketInfo", groupKey);
+        return cacheService.getObject(ticketInfoKey, GatewayTicket.class);
+    }
 
 
     public AccessTokenVo getAccessToken(GetAccessTokenReqDto req) {
@@ -72,7 +78,7 @@ public class GatewayAuthBiz {
         Assert.isTrue(legalTimeStamp && inMinuteTime, "无效的访问请求");
         //凭证信息校验
         log.info("getAccessToken ticket id = {}", req.getTicketId());
-        GatewayTicket ticket = ticketService.findByTicketId(req.getTicketId());
+        GatewayTicket ticket = getTicketInfo(req.getTicketId());
         Assert.notNull(ticket, "无效的凭证信息");
         //签名校验
         boolean checkSign = checkSign(req.getSign(), req.getTicketId(), ticket.getSecret(), req.getTimestamp());
@@ -143,7 +149,7 @@ public class GatewayAuthBiz {
         String email = GatewayAuthUtil.getEmail();
         String mobile = GatewayAuthUtil.getMobile();
         String deviceToken = GatewayAuthUtil.getDeviceToken();
-        GatewayTicket ticketInfo = ticketService.findByTicketId(ticketId);
+        GatewayTicket ticketInfo = getTicketInfo(ticketId);
         Assert.notNull(ticketInfo, "无效的凭证信息");
         //获取单点登录地址
         if (Objects.equals(GatewayAuthType.OAUTH_LOGIN_CHECK.getValue(), ticketInfo.getAuthType())) {
@@ -191,7 +197,7 @@ public class GatewayAuthBiz {
         Boolean matchPassword = userService.matchPassword(req.getPassword(), gatewayUser.getPassword());
         Assert.isTrue(matchPassword, "账号与密码不符");
         //校验凭证信息
-        GatewayTicket ticket = ticketService.findByTicketId(ticketId);
+        GatewayTicket ticket = getTicketInfo(ticketId);
         Assert.notNull(ticket, "凭证信息失效");
         String loginVerify = ticket.getLoginVerify();
         result.setMobileNumber(gatewayUser.getMobileNumber());

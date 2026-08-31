@@ -7,8 +7,8 @@ import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 import org.springframework.web.servlet.mvc.method.annotation.HttpEntityMethodProcessor;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -35,7 +35,16 @@ public class ReturnHandlerConfigurer {
     public void init() {
         final List<HandlerMethodReturnValueHandler> originalHandlers =
                 new ArrayList<>(Objects.requireNonNull(requestMappingHandlerAdapter.getReturnValueHandlers()));
+        // 已通过 WebMvcConfigurer.addReturnValueHandlers 注册过时，避免重复添加
+        boolean alreadyExists = originalHandlers.stream().anyMatch(h -> h instanceof ResponseViewHandler);
+        if (alreadyExists) {
+            return;
+        }
         final int deferredPos = obtainValueHandlerPosition(originalHandlers);
+        // 兼容 Spring 升级后 handler 列表结构变化：找不到插入点时避免启动直接异常
+        if (deferredPos < 1) {
+            return;
+        }
         originalHandlers.add(deferredPos - 1, new ResponseViewHandler());
         requestMappingHandlerAdapter.setReturnValueHandlers(originalHandlers);
     }

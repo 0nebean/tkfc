@@ -112,7 +112,7 @@ public abstract class AbstractWrapper<Self, Field> extends BaseWrapper<Self> imp
             getSqlBuild().append(SqlKeyword.IN.getKeyword());
             getSqlBuild().append(SqlKeyword.SPACE.getKeyword());
             getSqlBuild().append(SqlKeyword.LEFT_BRACKET.getKeyword());
-            getSqlBuild().append(valueToSqlString(value));
+            getSqlBuild().append(inCollectionToSqlEnumerable(value));
             getSqlBuild().append(SqlKeyword.RIGHT_BRACKET.getKeyword());
         }
         return instance();
@@ -127,7 +127,7 @@ public abstract class AbstractWrapper<Self, Field> extends BaseWrapper<Self> imp
             getSqlBuild().append(SqlKeyword.NOT_IN.getKeyword());
             getSqlBuild().append(SqlKeyword.SPACE.getKeyword());
             getSqlBuild().append(SqlKeyword.LEFT_BRACKET.getKeyword());
-            getSqlBuild().append(valueToSqlString(value));
+            getSqlBuild().append(inCollectionToSqlEnumerable(value));
             getSqlBuild().append(SqlKeyword.RIGHT_BRACKET.getKeyword());
         }
         return instance();

@@ -1,5 +1,6 @@
 package com.tkfc.core.common.annotations.web.auth;
 
+import com.tkfc.core.constants.StringPool;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -18,7 +19,7 @@ import java.lang.annotation.*;
 @Inherited
 public @interface Authenticated {
 
-    String[] value() default {};
+    String value() default StringPool.EMPTY;
 
     boolean needLogin() default false;
 

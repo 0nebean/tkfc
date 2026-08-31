@@ -3,7 +3,7 @@
 <!--author 0neBean-->
 <!--网关用户 mapper-->
 <!--since 2024-06-03 18:08:54-->
-<mapper namespace="com/tkfc/sdk/mapper/GatewayUserMapper.java:10">
+<mapper namespace="com.tkfc.sdk.mapper.GatewayUserMapper">
 
     <sql id="basicFiled">
             t.id,
@@ -21,6 +21,13 @@
             t.username
     </sql>
 
+    <select id="tableExists" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'gateway_user_${tableName}'
+    </select>
+
     <resultMap id="basicResultMap" type="com.tkfc.sdk.model.GatewayUser">
         <id column="id" jdbcType="INTEGER" property="id"/>
         <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
@@ -31,7 +38,7 @@
         <result column="email" jdbcType="VARCHAR" property="email"/>
         <result column="mobile_number" jdbcType="VARCHAR" property="mobileNumber"/>
         <result column="interested_app" jdbcType="VARCHAR" property="interestedApp"/>
-        <result column="is_lock" jdbcType="CHAR" property="isLock"/>
+        <result column="is_active" jdbcType="CHAR" property="isActive"/>
         <result column="password" jdbcType="VARCHAR" property="password"/>
         <result column="real_name" jdbcType="VARCHAR" property="realName"/>
         <result column="username" jdbcType="VARCHAR" property="username"/>

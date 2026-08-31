@@ -183,5 +183,23 @@ public class SqlWrapper<T> extends ExpressionWrapper<SqlWrapper<T>, Serializable
         return instance();
     }
 
+    /**
+     * 限制查询结果数量（类似 SQL 的 LIMIT）
+     * 只设置 LIMIT，不设置 OFFSET（从第一条记录开始）
+     * 与 page() 方法的区别：page() 会进行分页计算和总数查询，limit() 只限制返回数量
+     *
+     * @param limit 限制返回的记录数
+     * @return SqlWrapper 实例，支持链式调用
+     */
+    public SqlWrapper<T> limit(Integer limit) {
+        if (limit != null && limit > 0) {
+            setHasPagination(true);
+            getPagination().setPageSize(limit);
+            // 设置 currentPage 为 null，表示只使用 LIMIT，不使用 OFFSET
+            getPagination().setCurrentPage(null);
+        }
+        return instance();
+    }
+
 
 }

@@ -1,6 +1,8 @@
 package com.tkfc.boot.starter.mybatis.interceptor;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.tkfc.core.enums.base.BaseEnums;
 import com.tkfc.core.toolkit.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.cache.CacheKey;
@@ -104,22 +106,24 @@ public class LogSQLExecutionTimeInterceptor implements Interceptor {
         return logBuffer.toString();
     }
 
-    /* 如果参数是String，则添加单引号， 如果是日期，则转换为时间格式器并加单引号；  对参数是null和不是null的情况作了处理　　*/
     private static String getParameterValue(Object obj) {
         String value;
-        if (obj instanceof String) {
-            value = "'" + obj + "'";
-        } else if (obj instanceof Date) {
-            Date date = (Date) obj;
-            DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
-            value = "'" + formatter.format(date) + "'";
-        } else {
-            if (obj != null) {
-                value = obj.toString();
-            } else {
-                value = "";
+        switch (obj) {
+            case String _ -> value = "'" + obj + "'";
+            case Date date -> {
+                DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
+                value = "'" + formatter.format(date) + "'";
             }
-
+            case BaseEnums<?> enumObj -> value = "'" + enumObj.getValue() + "'";
+            case JSONObject jsonObj -> value = "'" + jsonObj.toJSONString() + "'";
+            case JSONArray jsonArr -> value = "'" + jsonArr.toJSONString() + "'";
+            case null, default -> {
+                if (obj != null) {
+                    value = obj.toString();
+                } else {
+                    value = "";
+                }
+            }
         }
         return value;
     }

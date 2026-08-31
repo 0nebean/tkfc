@@ -57,6 +57,9 @@ public class BeanInfo implements Serializable {
 	public void setOuterSystemModel(Boolean outerSystemModel) {
 		customSystemField = outerSystemModel;
 	}
+	public Boolean getCustomSystemField() {
+		return customSystemField;
+	}
 
 	private String logicalDeleteField;
 	public String getLogicalDeleteField() {

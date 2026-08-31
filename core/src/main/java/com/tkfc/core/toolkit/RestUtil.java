@@ -1,12 +1,15 @@
 package com.tkfc.core.toolkit;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.support.spring.http.converter.FastJsonHttpMessageConverter;
+import com.tkfc.core.converter.FastJson2HttpMessageConverterBuilder;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.HttpHost;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.Method;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpRequestFactory;
@@ -39,7 +42,7 @@ public class RestUtil {
         }
 
         @Override
-        protected HttpUriRequest createHttpUriRequest(HttpMethod httpMethod, URI uri) {
+        protected ClassicHttpRequest createHttpUriRequest(HttpMethod httpMethod, URI uri) {
             if (httpMethod == HttpMethod.GET) {
                 return new HttpGetRequestWithEntity(uri);
             }
@@ -47,14 +50,14 @@ public class RestUtil {
         }
     }
 
-    private final static class HttpGetRequestWithEntity extends HttpEntityEnclosingRequestBase {
+    private final static class HttpGetRequestWithEntity extends HttpUriRequestBase {
         public HttpGetRequestWithEntity(final URI uri) {
-            super.setURI(uri);
+            super(Method.GET.name(), uri);
         }
 
         @Override
         public String getMethod() {
-            return HttpMethod.GET.name();
+            return Method.GET.name();
         }
     }
 
@@ -74,8 +77,10 @@ public class RestUtil {
         }
     }
 
-    static private HttpHeaders common_headers;
-    private static RestTemplate restTemplate;
+    static private final HttpHeaders common_headers = new HttpHeaders();
+    private static volatile RestTemplate restTemplate;
+    private static final Object REST_TEMPLATE_LOCK = new Object();
+    private static volatile boolean headersInitialized = false;
 
     private RestUtil() {
     }
@@ -84,9 +89,16 @@ public class RestUtil {
      * 初始化配置文件
      */
     private void initHeader() {
-        common_headers = new HttpHeaders();
-        common_headers.add("Content-Type", MediaType.APPLICATION_JSON.toString());
-        common_headers.add("Accept", MediaType.APPLICATION_JSON.toString());
+        if (headersInitialized) {
+            return;
+        }
+        synchronized (REST_TEMPLATE_LOCK) {
+            if (!headersInitialized) {
+                common_headers.add("Content-Type", MediaType.APPLICATION_JSON.toString());
+                common_headers.add("Accept", MediaType.APPLICATION_JSON.toString());
+                headersInitialized = true;
+            }
+        }
     }
 
     /**
@@ -116,15 +128,18 @@ public class RestUtil {
      * @return 实例
      */
     public static RestUtil getInstanceWithProxy(String proxyHost, Integer proxyPort) {
-        //设置代理
-        HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
-        httpClientBuilder.setProxy(new HttpHost(proxyHost, proxyPort));
-        ClientHttpRequestFactory requestFactory = new HttpComponentsClientRestfulHttpRequestFactory(httpClientBuilder.build());
-        DefaultUriBuilderFactory builderFactory = new DefaultUriBuilderFactory();
-        builderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.VALUES_ONLY);
-        restTemplate = new RestTemplate(requestFactory);
-        restTemplate.setUriTemplateHandler(builderFactory);
-        REST_UTILS.initHeader();
+        synchronized (REST_TEMPLATE_LOCK) {
+            HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+            httpClientBuilder.setProxy(new HttpHost(proxyHost, proxyPort));
+            ClientHttpRequestFactory requestFactory = new HttpComponentsClientRestfulHttpRequestFactory(httpClientBuilder.build());
+            DefaultUriBuilderFactory builderFactory = new DefaultUriBuilderFactory();
+            builderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.VALUES_ONLY);
+            RestTemplate template = new RestTemplate(requestFactory);
+            template.setUriTemplateHandler(builderFactory);
+            setFastJson2MessageConverters(template);
+            restTemplate = template;
+            REST_UTILS.initHeader();
+        }
         return REST_UTILS;
     }
 
@@ -134,11 +149,19 @@ public class RestUtil {
      * @return 实例
      */
     public static RestUtil getInstance() {
-        DefaultUriBuilderFactory builderFactory = new DefaultUriBuilderFactory();
-        builderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.VALUES_ONLY);
-        restTemplate = new RestTemplate(new HttpComponentsClientRestfulHttpRequestFactory());
-        restTemplate.setUriTemplateHandler(builderFactory);
-        REST_UTILS.initHeader();
+        if (restTemplate == null) {
+            synchronized (REST_TEMPLATE_LOCK) {
+                if (restTemplate == null) {
+                    DefaultUriBuilderFactory builderFactory = new DefaultUriBuilderFactory();
+                    builderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.VALUES_ONLY);
+                    RestTemplate template = new RestTemplate(new HttpComponentsClientRestfulHttpRequestFactory());
+                    template.setUriTemplateHandler(builderFactory);
+                    setFastJson2MessageConverters(template);
+                    REST_UTILS.initHeader();
+                    restTemplate = template;
+                }
+            }
+        }
         return REST_UTILS;
     }
 
@@ -310,5 +333,15 @@ public class RestUtil {
         ResponseEntity<String> responseEntity = restTemplate.postForEntity(url, formEntity, String.class);
         String resXml = responseEntity.getBody();
         return XmlUtil.xmlToJson(resXml);
+    }
+
+    /**
+     * 设置 Fastjson2 作为消息转换器，替换默认的 Jackson 转换器。
+     * 此方法首先移除所有基于 Jackson 的消息转换器，然后将 Fastjson2 消息转换器添加到列表中，并置于首位以确保其优先级。
+     */
+    private static void setFastJson2MessageConverters(RestTemplate template) {
+        template.getMessageConverters().removeIf(c -> c.getClass().getName().contains("MappingJackson2"));
+        FastJsonHttpMessageConverter fastJsonHttpMessageConverter = FastJson2HttpMessageConverterBuilder.buildFastJson2HttpMessageConverter();
+        template.getMessageConverters().addFirst(fastJsonHttpMessageConverter);
     }
 }

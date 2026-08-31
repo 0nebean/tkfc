@@ -60,6 +60,10 @@ public abstract class PipelineExecutor extends BasicCmdExecutor {
         writeTitleExecLog(String.format(">> pipeline [%s] execute at [%s] <<", pipeline.getPipelineName(), DateUtil.getCurrentLogDateFormat()), logBuffer, pipeline, output);
         try {
             String cmd = FreeMarkerTemplateUtil.generateString(param, pipeline.getPipelineCmd());
+            boolean saveMutiLineCmd = cmd.startsWith(StringPool.LEFT_BRACE) && cmd.endsWith(StringPool.RIGHT_BRACE);
+            if (!saveMutiLineCmd) {
+                cmd = String.format("set -e && {\n%s\n}", cmd);
+            }
             execChannel = initChannelExec(session);
             writeExecLog(cmd, logBuffer, pipeline, output);
             pipeline.setPipelineExecStatus(exec(execChannel, logBuffer, pipeline, output, cmd));

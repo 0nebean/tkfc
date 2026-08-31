@@ -73,7 +73,7 @@
         </Col>
       </Row>
     </Form>
-    <Table row-key="id" size="small" :max-height="tableHeight" :load-data="loadAsyncData" :columns="formColumns" :data="formData" :indent-size="10" border class="table-data-form" stripe>
+    <Table row-key="id" size="small" :load-data="loadAsyncData" :columns="formColumns" :data="formData" :indent-size="10" border class="table-data-form" stripe>
       <template #type="{ row }">
         <Tag v-if="row.permissionType === '页面'" color="primary">{{ row.permissionType }}</Tag>
         <Tag v-if="row.permissionType === '目录'" color="success">{{ row.permissionType }}</Tag>
@@ -150,11 +150,6 @@ export default {
       ]
     }
   },
-  computed: {
-    tableHeight() {
-      return `${r"${this.store.useViewSizeStore().calHeight(70)}"}`
-    }
-  },
   watch: {
     asyncLoadData() {
       this.initDataTable()
@@ -219,13 +214,9 @@ export default {
     },
     viewTableItem(id) {
       this.$refs.detailView.initDetailData(id, true)
-      this.showDetail = true
     },
     editTableItem(id) {
-      this.$refs.detailView.initDetailPreData(() => {
-        this.$refs.detailView.initDetailData(id, false)
-        this.showDetail = true
-      })
+      this.$refs.detailView.initDetailData(id, false)
     },
     deleteTableItem(item) {
       this.confirmType = 0
@@ -242,9 +233,7 @@ export default {
     },
     showAddView() {
       this.$refs.detailView.entityId = 0
-      this.$refs.detailView.loadParentNode(() => {
-        this.showDetail = true
-      })
+      this.$refs.detailView.initDetailData(0, false)
     }
   }
 }

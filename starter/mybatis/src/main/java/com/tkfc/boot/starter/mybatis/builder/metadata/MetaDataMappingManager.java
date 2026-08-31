@@ -90,6 +90,10 @@ public class MetaDataMappingManager {
                 }
             }
             String underlineFieldName = StringUtil.camelCaseToUnderline(field.getName());
+            FiledName filedName = field.getAnnotation(FiledName.class);
+            if (Objects.nonNull(filedName) && StringUtil.isNotBlank(filedName.value())) {
+                underlineFieldName = filedName.value();
+            }
             if (field.isAnnotationPresent(LogicalDelete.class)) {
                 beanInfo.setLogicalDeleteField(underlineFieldName);
             }

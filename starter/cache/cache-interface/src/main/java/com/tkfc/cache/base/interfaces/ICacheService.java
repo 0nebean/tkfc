@@ -95,6 +95,28 @@ public interface ICacheService extends ICache {
 
     <T> T brpopLpush(String sourceKey, String destinationKey, long timeout, TimeUnit timeUnit, Class<T> clazz);
 
+    /**
+     * 列表长度（LLEN），用于积压监控 / 入队限流。
+     */
+    Long llen(String key);
+
+    /**
+     * 按值删除列表元素（LREM），可靠队列 ACK 用。
+     *
+     * @param count &gt;0 从头删 count 个匹配；&lt;0 从尾删；=0 删全部匹配
+     */
+    Long lrem(String key, long count, Object item);
+
+    /**
+     * 非阻塞：从 source 右弹并左推进 destination（RPOPLPUSH），回收 processing 用。
+     */
+    <T> T rpoplpush(String sourceKey, String destinationKey, Class<T> clazz);
+
+    /**
+     * 原始 JSON 区间读取（LRANGE），回收/排障时用于精确 lrem。
+     */
+    List<String> lrange(String key, long start, long end);
+
     Boolean clearQueue(String key);
 
     <T> List<T> getAllQueueData(String key, Class<T> clazz);

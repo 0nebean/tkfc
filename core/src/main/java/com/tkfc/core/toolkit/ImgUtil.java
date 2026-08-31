@@ -206,11 +206,62 @@ public class ImgUtil {
      * @throws IOException io异常
      */
     public static void webpToPng(File fromPic, File toPic) throws IOException {
-        // 读取WebP文件
-        BufferedImage webpImage = ImageIO.read(fromPic);
+        Thumbnails.of(fromPic)
+                .scale(1)
+                .outputFormat("png")
+                .toFile(toPic);
+    }
 
-        // 将WebP图像保存为PNG文件
-        ImageIO.write(webpImage, "png", toPic);
+    /**
+     * 将任意静态图片格式转换为 WebP 格式
+     *
+     * @param fromPic 原图片文件（支持 JPG、PNG、GIF、BMP、WebP 等格式）
+     * @param toPic   目标 WebP 文件
+     * @throws IOException 如果读取或写入图片时发生错误
+     */
+    public static void toWebp(File fromPic, File toPic) throws IOException {
+        Thumbnails.of(fromPic)
+                .scale(1)
+                .outputFormat("webp")
+                .toFile(toPic);
+    }
+
+    /**
+     * 判断文件是否需要转换为 WebP 格式
+     *
+     * @param filePath 文件路径
+     * @return true 表示需要转换，false 表示不需要转换（已经是 WebP 或不是支持的图片格式）
+     */
+    public static boolean needConvertToWebp(String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            return false;
+        }
+
+        // 获取文件扩展名
+        String extension = IoUtil.getFilePathTypeName(filePath);
+        if (extension == null || extension.isEmpty()) {
+            return false;
+        }
+
+        // 转换为小写进行比较
+        String ext = extension.toLowerCase();
+
+        // 如果已经是 WebP 格式，不需要转换
+        if (ext.equals(".webp") || ext.equals("webp")) {
+            return false;
+        }
+
+        // 如果已经是 WebP 格式，不需要转换
+        if (ext.equals(".avif") || ext.equals("avif")) {
+            return false;
+        }
+
+        // 支持的图片格式：JPG、JPEG、PNG、GIF、BMP
+        return ext.equals(".jpg") || ext.equals("jpg") ||
+               ext.equals(".jpeg") || ext.equals("jpeg") ||
+               ext.equals(".png") || ext.equals("png") ||
+               ext.equals(".gif") || ext.equals("gif") ||
+               ext.equals(".bmp") || ext.equals("bmp");
     }
 
     /**

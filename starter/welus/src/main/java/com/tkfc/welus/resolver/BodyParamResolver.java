@@ -2,26 +2,26 @@ package com.tkfc.welus.resolver;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.alibaba.fastjson2.TypeReference;
-import com.tkfc.core.common.annotations.web.response.JsonMapping;
-import com.tkfc.core.constants.StringPool;
-import com.tkfc.core.throwable.base.Assert;
-import com.tkfc.core.toolkit.*;
 import com.tkfc.core.common.annotations.web.param.Body;
 import com.tkfc.core.common.annotations.web.param.BodyParam;
 import com.tkfc.core.common.annotations.web.param.BodyProperty;
+import com.tkfc.core.common.annotations.web.response.JsonMapping;
+import com.tkfc.core.throwable.base.Assert;
+import com.tkfc.core.toolkit.*;
 import com.tkfc.welus.definition.abstracts.BaseFieldValid;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * 路径参数解析器
@@ -121,7 +121,7 @@ public class BodyParamResolver extends BaseFieldValid implements HandlerMethodAr
                     if (Objects.equals(fieldSimpleName, JSONArray.class.getSimpleName())) {
                         tempMappingKeys = CollectionUtil.mergeList(fieldKeys, Collections.singletonList(field.getName()));
                         JsonUtil.mapValue(paramOut, JsonUtil.toJsonArray(mappingValue), CollectionUtil.listToStringArr(tempMappingKeys));
-                    } else   if (Objects.equals(fieldSimpleName, JSONObject.class.getSimpleName())) {
+                    } else if (Objects.equals(fieldSimpleName, JSONObject.class.getSimpleName())) {
                         tempMappingKeys = CollectionUtil.mergeList(fieldKeys, Collections.singletonList(field.getName()));
                         JsonUtil.mapValue(paramOut, JsonUtil.toJsonObject(mappingValue), CollectionUtil.listToStringArr(tempMappingKeys));
                     }

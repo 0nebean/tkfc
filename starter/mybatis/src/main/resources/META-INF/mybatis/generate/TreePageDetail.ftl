@@ -1,5 +1,6 @@
 <template>
   <Drawer v-model="show" :title="drawerTitle" :width="store.useViewSizeStore().drawerWidthVal" :mask-closable="false" :styles="styles" @on-visible-change="resetAddForm">
+    <Spin fix :show="detailLoading"/>
     <Row>
       <Col :span="store.useViewSizeStore().drawerSpanVal">
       <Form ref="addDataFrom" shadow label-position="left" :model="addDataFrom" :rules="validateRules">
@@ -18,7 +19,7 @@
           </FormItem>
           </Col>
         </Row>
-        
+
     <#if fieldArr?exists>
       <#list fieldArr as item>
         <#if item.columnName != 'parentId' && item.columnName != 'chName'
@@ -28,7 +29,11 @@
         <Row justify="start">
           <Col span="24">
           <FormItem label="${item.comment} :" prop="${item.columnName}">
+          <#if item.isEnum>
+            <DictSelector v-model.trim="addDataFrom.${item.columnName}" placeholder="请选择${item.comment}" ref="${item.columnName}Selector" groupVal="${item.enumGroupVal}" :disabled="readOnly" />
+          <#else>
             <Input v-model.trim="addDataFrom.${item.columnName}" type="text" placeholder="请输入${item.comment}" :disabled="readOnly"></Input>
+          </#if>
           </FormItem>
           </Col>
         </Row>
@@ -46,7 +51,7 @@
         </Row>
       </Form>
 
-      <template v-hasPrem="['PERM_RBAC_DEPT_SAVE']">
+      <template v-hasPrem="['${permShortName}_SAVE']">
         <div v-if="!readOnly" class="demo-drawer-footer mt-20 ml-10">
           <Button type="primary" :disabled="disableSubmit" @click="submitAddFrom('addDataFrom')">提交</Button>
         </div>
@@ -59,9 +64,11 @@
 
 <script>
 import ${modelVarName}Api from "./${modelName}Api"
+import DictSelector from "@/view/common/selector/from/DictSelector.vue"
 
   export default {
     components: {
+      DictSelector,
     },
     inject: ["bin", "api", "http", "tips", "store"],
     props: {
@@ -89,6 +96,7 @@ import ${modelVarName}Api from "./${modelName}Api"
         entityId: 0,
         addDataFrom: {},
         deptTreeList: [],
+        detailLoading: false,
         validateRules: {
           parentId: [
             {
@@ -120,8 +128,13 @@ import ${modelVarName}Api from "./${modelName}Api"
           ${item.columnName}: [
             {
               required: true,
+              <#if item.isEnum>
+              message: "请选择${item.comment}",
+              trigger: "change"
+              <#else>
               message: "请输入${item.comment}",
               trigger: "blur"
+              </#if>
             }
           ],
             </#if>
@@ -161,6 +174,18 @@ import ${modelVarName}Api from "./${modelName}Api"
     },
     mounted() {
       this.disableSubmit = false
+      <#if fieldArr?exists>
+      this.$nextTick(() => {
+        const refs = [
+          <#list fieldArr as item>
+          <#if item.isEnum>
+          "${item.columnName}Selector",
+          </#if>
+          </#list>
+        ]
+        this.bin.loadNext(refs, 0, this.$refs)
+      })
+      </#if>
     },
     methods: {
       submitAddFrom(name) {
@@ -195,28 +220,26 @@ import ${modelVarName}Api from "./${modelName}Api"
         })
       },
       initDetailData(entityId, readOnly) {
+        this.$emit("closeDetail", true)
         this.entityId = entityId
         this.readOnly = readOnly
-        if (entityId !== 0) {
-          this.disableSubmit = true
-          this.loadParentNode(() => {
+        this.detailLoading = true
+        this.loadParentNode(() => {
+          if (entityId !== 0) {
             this.http.request(
                 ${modelVarName}Api.get(entityId),
                 resp => {
                   this.addDataFrom = resp.data
-                  this.disableSubmit = false
+                  this.detailLoading = false
                 },
                 () => {
-                  this.disableSubmit = false
+                  this.detailLoading = false
                 }
             )
-          })
-        }
-      },
-      initDetailPreData(callback) {
-        if (this.bin.nonNull(callback)) {
-          callback()
-        }
+          } else {
+            this.detailLoading = false
+          }
+        })
       },
       resetAddForm(status) {
         if (!status) {

@@ -53,6 +53,11 @@ public class BaseResponse<T> {
 
     @Getter
     @Setter
+    @BodyProperty(tag = "排序")
+    private Sort  Sort;
+
+    @Getter
+    @Setter
     @BodyProperty(tag = "分页")
     private Pagination pagination;
 
@@ -104,7 +109,6 @@ public class BaseResponse<T> {
         return new BaseResponse<>(200, "OK", data);
     }
 
-
     public static <T> BaseResponse<T> ok(T data, Pagination pagination) {
         return new BaseResponse<T>(200, "OK", data, pagination);
     }
@@ -131,7 +135,6 @@ public class BaseResponse<T> {
         return response;
     }
 
-
     public BaseResponse<T> withPath(String path) {
         this.path = path;
         return this;
@@ -147,4 +150,5 @@ public class BaseResponse<T> {
         this.error = error;
         return this;
     }
+
 }

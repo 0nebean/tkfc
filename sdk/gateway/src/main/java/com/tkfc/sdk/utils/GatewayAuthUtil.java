@@ -1,7 +1,10 @@
 package com.tkfc.sdk.utils;
 
+import com.tkfc.core.toolkit.StringUtil;
 import com.tkfc.core.toolkit.WebUtil;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -96,7 +99,10 @@ public class GatewayAuthUtil {
         Set<String> tenantIds = new HashSet<>();
         tenantIds.add("1");
         try {
-            tenantIds.add(getTenantId());
+            String tenantId = getTenantId();
+            if (StringUtil.isNotBlank(tenantId)) {
+                tenantIds.add(tenantId);
+            }
         } catch (Exception ignored) {
         }
         return new ArrayList<>(tenantIds);
@@ -108,7 +114,7 @@ public class GatewayAuthUtil {
      * @return tenantId
      */
     public static String getTenantName() {
-        return WebUtil.getRequestHeader(WebUtil.getHttpServletRequest(), GATEWAY_TENANT_NAME_KEY);
+        return decodeHeaderValue(WebUtil.getRequestHeader(WebUtil.getHttpServletRequest(), GATEWAY_TENANT_NAME_KEY));
     }
 
     /**
@@ -153,7 +159,7 @@ public class GatewayAuthUtil {
      * @return username
      */
     public static String getUserRealName() {
-        return WebUtil.getRequestHeader(WebUtil.getHttpServletRequest(), GATEWAY_USER_REAL_NAME_KEY);
+        return decodeHeaderValue(WebUtil.getRequestHeader(WebUtil.getHttpServletRequest(), GATEWAY_USER_REAL_NAME_KEY));
     }
 
     /**
@@ -181,6 +187,17 @@ public class GatewayAuthUtil {
      */
     public static String getNativeReferer() {
         return WebUtil.getRequestHeader(WebUtil.getHttpServletRequest(), GATEWAY_HTTP_REFERER);
+    }
+
+    private static String decodeHeaderValue(String value) {
+        if (StringUtil.isBlank(value)) {
+            return value;
+        }
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException ignored) {
+            return value;
+        }
     }
 
 

@@ -45,7 +45,10 @@ public abstract class BaseSplitServiceImpl<T extends BaseModel, V extends BaseVo
 
     @Override
     public Integer deleteByIds(List<Long> ids, String tableSuffix) {
-        return baseMapper.delete(SqlBuilder.<T>init().in(BaseModel::getId, Collections.singletonList(ids)).orderByDesc(BaseModel::getId), tableSuffix);
+        if (CollectionUtil.isEmpty(ids)) {
+            return 0;
+        }
+        return baseMapper.delete(SqlBuilder.<T>init().in(BaseModel::getId, ids).orderByDesc(BaseModel::getId), tableSuffix);
     }
 
     @Override
@@ -60,7 +63,10 @@ public abstract class BaseSplitServiceImpl<T extends BaseModel, V extends BaseVo
 
     @Override
     public Integer deleteByIdsPhysically(List<Long> ids, String tableSuffix) {
-        return baseMapper.deletePhysically(SqlBuilder.<T>init().in(BaseModel::getId, Collections.singletonList(ids)).orderByDesc(BaseModel::getId), tableSuffix);
+        if (CollectionUtil.isEmpty(ids)) {
+            return 0;
+        }
+        return baseMapper.deletePhysically(SqlBuilder.<T>init().in(BaseModel::getId, ids).orderByDesc(BaseModel::getId), tableSuffix);
     }
 
     @Override
@@ -116,7 +122,7 @@ public abstract class BaseSplitServiceImpl<T extends BaseModel, V extends BaseVo
     public T findOne(IWrapper wrapper, String tableSuffix) {
         wrapper.getPagination().setCurrentPage(Pagination.DEFAULT_CURRENT_PAGE);
         wrapper.getPagination().setPageSize(Pagination.DEFAULT_CURRENT_PAGE);
-        return baseMapper.find(wrapper, tableSuffix).get(0);
+        return baseMapper.find(wrapper, tableSuffix).stream().filter(Objects::nonNull).findFirst().orElse(null);
     }
 
     @Override
@@ -149,7 +155,10 @@ public abstract class BaseSplitServiceImpl<T extends BaseModel, V extends BaseVo
 
     @Override
     public List<T> findByIds(List<Long> ids, String tableSuffix) {
-        return baseMapper.find(SqlBuilder.<T>init().in(BaseModel::getId, Collections.singletonList(ids)).orderByDesc(BaseModel::getId), tableSuffix);
+        if (CollectionUtil.isEmpty(ids)) {
+            return new ArrayList<>();
+        }
+        return baseMapper.find(SqlBuilder.<T>init().in(BaseModel::getId, ids).orderByDesc(BaseModel::getId), tableSuffix);
     }
 
     @Override

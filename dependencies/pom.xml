@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.18</version>
+        <version>3.5.12</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -18,11 +18,12 @@
 
 
     <properties>
-        <java.version>11</java.version>
-        <repo.snapshots.url>https://nexus-aws.muryi.com/repository/maven-snapshots/</repo.snapshots.url>
-        <repo.releases.url>https://nexus-aws.muryi.com/repository/maven-releases/</repo.releases.url>
+        <java.version>25</java.version>
+        <repo.snapshots.url>http://127.0.0.1:8081/repository/maven-snapshots/</repo.snapshots.url>
+        <repo.releases.url>http://127.0.0.1:8081/repository/maven-releases/</repo.releases.url>
         <elasticsearch.starter.version>1.0.0-SNAPSHOT</elasticsearch.starter.version>
-        <elasticsearch.version>7.1.0</elasticsearch.version>
+        <!-- Official Elasticsearch Java API Client (replaces deprecated RestHighLevelClient) -->
+        <elasticsearch.version>9.0.3</elasticsearch.version>
         <jsch.starter.version>1.0.0-SNAPSHOT</jsch.starter.version>
         <notice.starter.version>1.0.0-SNAPSHOT</notice.starter.version>
         <welus.starter.version>1.0.0-SNAPSHOT</welus.starter.version>
@@ -48,39 +49,44 @@
         <aws.bedrock.sdk.version>1.0.0-SNAPSHOT</aws.bedrock.sdk.version>
         <aws.ses.sdk.version>1.0.0-SNAPSHOT</aws.ses.sdk.version>
         <aliyun.oss.sdk.version>1.0.0-SNAPSHOT</aliyun.oss.sdk.version>
+        <tencent.cos.sdk.version>1.0.0-SNAPSHOT</tencent.cos.sdk.version>
         <aliyun.sms.sdk.version>1.0.0-SNAPSHOT</aliyun.sms.sdk.version>
         <cache.version>1.0.0-SNAPSHOT</cache.version>
         <core.version>1.0.0-SNAPSHOT</core.version>
         <child.model.version>1.0.0-SNAPSHOT</child.model.version>
-        <mybatis.version>2.2.0</mybatis.version>
-        <druid.version>1.2.17</druid.version>
-        <fastjson2.version>2.0.53</fastjson2.version>
+        <mybatis.version>4.0.1</mybatis.version>
+        <druid.version>1.2.28</druid.version>
+        <fastjson2.version>2.0.61</fastjson2.version>
         <dom4j.version>2.1.3</dom4j.version>
-        <lombok.version>1.18.22</lombok.version>
+        <lombok.version>1.18.44</lombok.version>
         <commons-compress.version>1.27.1</commons-compress.version>
         <commons-io.version>2.16.1</commons-io.version>
         <commons-lang.version>2.6</commons-lang.version>
         <commons-lang3.version>3.11</commons-lang3.version>
         <apollo-client.version>1.9.1</apollo-client.version>
         <commons-codec.version>1.15</commons-codec.version>
-        <freemarker.version>2.3.30</freemarker.version>
-        <servlet.version>4.0.1</servlet.version>
+        <freemarker.version>2.3.34</freemarker.version>
+        <servlet.version>6.1.0</servlet.version>
         <jdbc.version>8.0.32</jdbc.version>
         <thymeleaf-extras-java8time.version>3.0.4.RELEASE</thymeleaf-extras-java8time.version>
-        <thymeleaf-extras-springsecurity5.version>3.0.4.RELEASE</thymeleaf-extras-springsecurity5.version>
+        <thymeleaf-extras-springsecurity6.version>3.1.3.RELEASE</thymeleaf-extras-springsecurity6.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
         <spring-cloud.version>2020.0.3</spring-cloud.version>
-        <netty-all.version>4.1.71.Final</netty-all.version>
         <jsoup.version>1.15.3</jsoup.version>
         <okhttp3.version>3.12.1</okhttp3.version>
         <thumbnailator.version>0.4.14</thumbnailator.version>
         <jsch.version>0.1.55</jsch.version>
-        <guava.version>19.0</guava.version>
+        <guava.version>33.6.0-jre</guava.version>
+        <protobuf.version>3.25.8</protobuf.version>
+        <protoc.version>3.25.8</protoc.version>
+        <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
+        <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
+        <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
         <opencv.version>4.5.5</opencv.version>
         <disruptor.version>3.4.4</disruptor.version>
         <redisson.version>3.17.6</redisson.version>
         <spring-cloud.version>2021.0.1</spring-cloud.version>
-        <httpclient.version>4.5.14</httpclient.version>
+        <httpclient.version>5.6</httpclient.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <jmockdata.version>4.3.0</jmockdata.version>
         <webp-imageio.version>0.1.6</webp-imageio.version>
@@ -173,6 +179,11 @@
                 <version>${guava.version}</version>
             </dependency>
             <dependency>
+                <groupId>javax.annotation</groupId>
+                <artifactId>javax.annotation-api</artifactId>
+                <version>${javax.annotation-api.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp</artifactId>
                 <version>${okhttp3.version}</version>
@@ -186,11 +197,6 @@
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
                 <version>${jsoup.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-all</artifactId>
-                <version>${netty-all.version}</version>
             </dependency>
             <dependency>
                 <groupId>javax.validation</groupId>
@@ -209,8 +215,8 @@
             </dependency>
             <dependency>
                 <groupId>org.thymeleaf.extras</groupId>
-                <artifactId>thymeleaf-extras-springsecurity5</artifactId>
-                <version>${thymeleaf-extras-springsecurity5.version}</version>
+                <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+                <version>${thymeleaf-extras-springsecurity6.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
@@ -220,8 +226,8 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>javax.servlet</groupId>
-                <artifactId>javax.servlet-api</artifactId>
+                <groupId>jakarta.servlet</groupId>
+                <artifactId>jakarta.servlet-api</artifactId>
                 <version>${servlet.version}</version>
             </dependency>
             <dependency>
@@ -265,20 +271,14 @@
                 <version>${elasticsearch.starter.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.elasticsearch.client</groupId>
-                <artifactId>elasticsearch-rest-high-level-client</artifactId>
+                <groupId>co.elastic.clients</groupId>
+                <artifactId>elasticsearch-java</artifactId>
                 <version>${elasticsearch.version}</version>
             </dependency>
-
+            <!-- Low-level REST transport (HttpHost, RestClient); used by RestClientTransport, often not on compile classpath if only elasticsearch-java is declared -->
             <dependency>
                 <groupId>org.elasticsearch.client</groupId>
                 <artifactId>elasticsearch-rest-client</artifactId>
-                <version>${elasticsearch.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.elasticsearch</groupId>
-                <artifactId>elasticsearch</artifactId>
                 <version>${elasticsearch.version}</version>
             </dependency>
             <dependency>
@@ -350,6 +350,11 @@
                 <groupId>com.tkfc</groupId>
                 <artifactId>aliyun.oss.sdk</artifactId>
                 <version>${aliyun.oss.sdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tkfc</groupId>
+                <artifactId>tencent.cos.sdk</artifactId>
+                <version>${tencent.cos.sdk.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.tkfc</groupId>
@@ -488,11 +493,18 @@
                 <artifactId>mysql-connector-java</artifactId>
                 <version>${jdbc.version}</version>
             </dependency>
+
             <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpclient</artifactId>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
                 <version>${httpclient.version}</version>
             </dependency>
+
+<!--            <dependency>-->
+<!--                <groupId>org.apache.httpcomponents</groupId>-->
+<!--                <artifactId>httpclient</artifactId>-->
+<!--                <version>${httpclient.version}</version>-->
+<!--            </dependency>-->
 
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
@@ -509,14 +521,22 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.13.0</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <parameters>true</parameters>
                     <compilerArguments>
                         <!--suppress UnresolvedMavenProperty -->
-                        <bootclasspath>${JAVA_HOME}/jre/lib/rt.jar</bootclasspath>
+                        <bootclasspath>${JAVA_HOME}/jre/lib/rt.jar;${JAVA_HOME}/lib/rt.jar</bootclasspath>
                     </compilerArguments>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>

@@ -4,6 +4,7 @@ import com.tkfc.core.common.annotations.web.param.Body;
 import com.tkfc.core.common.annotations.web.param.BodyProperty;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -66,5 +67,17 @@ public class ${modelName}Tree {
 
     @BodyProperty(tag = "子节点")
     private List<${modelName}Tree> children;
+
+    @Getter
+    @Setter
+    @ExcelIgnore
+    @BodyProperty(tag = "创建时间")
+    private LocalDateTime createTime;
+
+    @Getter
+    @Setter
+    @ExcelIgnore
+    @BodyProperty(tag = "更新时间")
+    private LocalDateTime updateTime;
 
 }

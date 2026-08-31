@@ -45,6 +45,14 @@ public class Pagination implements Serializable {
     @Setter
     @BodyProperty(tag = "总页数")
     private Integer totalPages;
+
+    /**
+     * 分页游标
+     */
+    @Getter
+    @Setter
+    @BodyProperty(tag = "分页游标")
+    private Object[] searchAfter;
     /**
      * 总数据数
      */
@@ -61,6 +69,10 @@ public class Pagination implements Serializable {
         this.currentPage = DEFAULT_CURRENT_PAGE;
     }
 
+    public Pagination(Integer totalCount, Integer pageSize, Object[] searchAfter) {
+        this.searchAfter = searchAfter;
+        this.init(totalCount, pageSize);
+    }
 
     /**
      * 初始化分页参数:需要先设置totalRows

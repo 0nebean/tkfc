@@ -52,33 +52,50 @@ public class PaginationInterceptor implements Interceptor {
             Integer currentPage = pagination.getCurrentPage();
             boolean hasPageSize = Objects.nonNull(pageSize) && pageSize >= 0;
             boolean hasCurrentPage = Objects.nonNull(currentPage) && currentPage >= 0;
-            // 得到总记录数
-            if (hasPageSize && hasCurrentPage) {
-                //查询记录总数。
-                StringBuilder countSql = new StringBuilder();
-                String customSql = getCustomCountSql(mappedStatement, parameter, parameterObject);
-                countSql.append("select count(1) as count from (").append(Objects.requireNonNullElse(customSql, originalSql)).append(") t");
-                BoundSqlWrapper newBoundSql = new BoundSqlWrapper(boundSql, countSql.toString(), mappedStatement.getConfiguration());
-                ResultMap map = new ResultMap.Builder(mappedStatement.getConfiguration(), "qq", Integer.class, new ArrayList<>()).build();
-                List<ResultMap> mapList = new ArrayList<>();
-                mapList.add(map);
-                MappedStatement newMs = copyFromMappedStatement(mappedStatement, new BoundSqlSqlSource(newBoundSql), mapList);
-                totalCount = (Integer) ((Executor) invocation.getTarget()).query(newMs, parameterObject, (RowBounds) invocation.getArgs()[2], null).get(0);
+            
+            // 判断是否为仅 LIMIT 模式（只设置 pageSize，不设置 currentPage）
+            boolean limitOnly = hasPageSize && !hasCurrentPage;
+            
+            if (limitOnly) {
+                // 仅 LIMIT 模式：只设置 LIMIT，不查询总数，不计算分页
+                String pageSql = getPagingString(originalSql, 0, pageSize);
+                invocation.getArgs()[2] = new RowBounds(RowBounds.NO_ROW_OFFSET, RowBounds.NO_ROW_LIMIT);
+                if (boundSql.getParameterMappings().size() == 0){
+                    boundSql = new BoundSql(mappedStatement.getConfiguration(), pageSql, new ArrayList<>(), boundSql.getParameterObject());
+                }
+                BoundSqlWrapper newBoundSql = new BoundSqlWrapper(boundSql, pageSql, mappedStatement.getConfiguration());
+                MappedStatement newMs = copyFromMappedStatement(mappedStatement, new BoundSqlSqlSource(newBoundSql));
+                invocation.getArgs()[0] = newMs;
+            } else {
+                // 标准分页模式：查询总数并计算分页
+                // 得到总记录数
+                if (hasPageSize && hasCurrentPage) {
+                    //查询记录总数。
+                    StringBuilder countSql = new StringBuilder();
+                    String customSql = getCustomCountSql(mappedStatement, parameter, parameterObject);
+                    countSql.append("select count(1) as count from (").append(Objects.requireNonNullElse(customSql, originalSql)).append(") t");
+                    BoundSqlWrapper newBoundSql = new BoundSqlWrapper(boundSql, countSql.toString(), mappedStatement.getConfiguration());
+                    ResultMap map = new ResultMap.Builder(mappedStatement.getConfiguration(), "qq", Integer.class, new ArrayList<>()).build();
+                    List<ResultMap> mapList = new ArrayList<>();
+                    mapList.add(map);
+                    MappedStatement newMs = copyFromMappedStatement(mappedStatement, new BoundSqlSqlSource(newBoundSql), mapList);
+                    totalCount = (Integer) ((Executor) invocation.getTarget()).query(newMs, parameterObject, (RowBounds) invocation.getArgs()[2], null).get(0);
+                }
+
+                // 分页计算
+                pagination.init(totalCount, pagination.getPageSize(), pagination.getCurrentPage());
+
+
+                // 分页查询 本地化对象 修改数据库注意修改实现
+                String pageSql = getPagingString(originalSql, pagination.getPageSize() * (pagination.getCurrentPage() - 1), pagination.getPageSize());
+                invocation.getArgs()[2] = new RowBounds(RowBounds.NO_ROW_OFFSET, RowBounds.NO_ROW_LIMIT);
+                if (boundSql.getParameterMappings().size() == 0){
+                    boundSql = new BoundSql(mappedStatement.getConfiguration(), pageSql, new ArrayList<>(), boundSql.getParameterObject());
+                }
+                BoundSqlWrapper newBoundSql = new BoundSqlWrapper(boundSql, pageSql, mappedStatement.getConfiguration());
+                MappedStatement newMs = copyFromMappedStatement(mappedStatement, new BoundSqlSqlSource(newBoundSql));
+                invocation.getArgs()[0] = newMs;
             }
-
-            // 分页计算
-            pagination.init(totalCount, pagination.getPageSize(), pagination.getCurrentPage());
-
-
-            // 分页查询 本地化对象 修改数据库注意修改实现
-            String pageSql = getPagingString(originalSql, pagination.getPageSize() * (pagination.getCurrentPage() - 1), pagination.getPageSize());
-            invocation.getArgs()[2] = new RowBounds(RowBounds.NO_ROW_OFFSET, RowBounds.NO_ROW_LIMIT);
-            if (boundSql.getParameterMappings().size() == 0){
-                boundSql = new BoundSql(mappedStatement.getConfiguration(), pageSql, new ArrayList<>(), boundSql.getParameterObject());
-            }
-            BoundSqlWrapper newBoundSql = new BoundSqlWrapper(boundSql, pageSql, mappedStatement.getConfiguration());
-            MappedStatement newMs = copyFromMappedStatement(mappedStatement, new BoundSqlSqlSource(newBoundSql));
-            invocation.getArgs()[0] = newMs;
 
         }
         return invocation.proceed();

@@ -36,6 +36,23 @@ import java.util.regex.Pattern;
 @Slf4j
 public class ReflectionUtil {
 
+    /**
+     * JDK9+ 模块系统下，直接 setAccessible(true) 可能因为未 opened 而抛
+     * {@link java.lang.reflect.InaccessibleObjectException}（JDK25 更常见）。
+     * 使用 trySetAccessible() 并在失败时降级，避免接口直接 500。
+     */
+    private static void trySetAccessible(AccessibleObject accessibleObject) {
+        if (accessibleObject == null) {
+            return;
+        }
+        try {
+            accessibleObject.trySetAccessible();
+        } catch (RuntimeException e) {
+            // 访问失败通常是模块未开放导致，反射链路应当继续（由上层按需跳过）。
+            log.debug("trySetAccessible failed: {}", e.getMessage());
+        }
+    }
+
 
     /**
      * 调用Getter方法.
@@ -163,7 +180,7 @@ public class ReflectionUtil {
         for (Class<?> superClass = obj.getClass(); superClass != Object.class; superClass = superClass.getSuperclass()) {
             try {
                 Field field = superClass.getDeclaredField(fieldName);
-                field.setAccessible(true);
+                trySetAccessible(field);
                 return field;
             } catch (NoSuchFieldException e) {
                 // Field不在当前类定义,继续向上转型
@@ -184,7 +201,7 @@ public class ReflectionUtil {
         for (Class<?> superClass = Clazz; superClass != Object.class; superClass = superClass.getSuperclass()) {
             Field[] declaredFields = superClass.getDeclaredFields();
             for (Field field : declaredFields) {
-                field.setAccessible(true);
+                trySetAccessible(field);
                 result.add(field);
             }
         }
@@ -271,7 +288,7 @@ public class ReflectionUtil {
             try {
                 Method method = superClass.getDeclaredMethod(methodName, parameterTypes);
 
-                method.setAccessible(true);
+                trySetAccessible(method);
 
                 return method;
 

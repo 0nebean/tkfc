@@ -1,6 +1,6 @@
 package ${daoPackageName};
 
-<#if isSplitTable == true>
+<#if isSplitTable>
 import com.tkfc.boot.starter.mybatis.extend.BaseSplitMapper;
 <#else>
 import com.tkfc.boot.starter.mybatis.extend.BaseMapper;
@@ -14,7 +14,7 @@ import ${modelPackageName}.${modelName};
 * @since ${createTime}
 */
 
-<#if isSplitTable == true>
+<#if isSplitTable>
 public interface ${modelName}Mapper extends BaseSplitMapper<${modelName}> {
 <#else>
 public interface ${modelName}Mapper extends BaseMapper<${modelName}> {

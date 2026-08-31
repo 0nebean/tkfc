@@ -1,7 +1,7 @@
 package com.tkfc.sdk.timer;
 
 import com.tkfc.cache.base.interfaces.ICacheService;
-import com.tkfc.sdk.biz.GatewayNoticeBiz;
+import com.tkfc.sdk.biz.GatewaySyncAccessInfoBiz;
 import com.tkfc.sdk.pojo.dto.GatewayNoticeMsg;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -26,7 +26,7 @@ public class GatewayNoticeSubscriber {
 
     @Bean
     @SuppressWarnings("all")
-    public InitializingBean subGatewayMsg(@Autowired ICacheService cacheService, @Autowired GatewayNoticeBiz noticeBiz) {
+    public InitializingBean subGatewayMsg(@Autowired ICacheService cacheService, @Autowired GatewaySyncAccessInfoBiz noticeBiz) {
         Timer timer = new Timer();
         // 定义任务
         TimerTask task = new TimerTask() {
@@ -34,7 +34,7 @@ public class GatewayNoticeSubscriber {
             public void run() {
                 GatewayNoticeMsg msg = cacheService.rpop("GATEWAY_NOTICE_MSG", GatewayNoticeMsg.class);
                 while (Objects.nonNull(msg)) {
-                    log.info("GatewayNoticeSubscriber gateway notice msg = {}", msg);
+                    log.debug("GatewayNoticeSubscriber gateway notice msg = {}", msg);
                     try {
                         noticeBiz.updateCallTimesInfo(msg);
                     } catch (Exception e) {

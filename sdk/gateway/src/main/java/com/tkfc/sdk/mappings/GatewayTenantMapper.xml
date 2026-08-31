@@ -47,5 +47,23 @@
         order by t.id desc
     </select>
 
+    <select id="findUnBindTenantInfo" resultType="com.tkfc.sdk.model.GatewayTenant">
+        SELECT
+        <include refid="basicFiled"/>
+        FROM gateway_tenant t
+        WHERE
+        t.is_deleted = '0'
+        AND t.id NOT IN (
+        SELECT bind.tenant_id FROM gateway_tenant_user_bind bind
+        WHERE bind.user_id = #{userId}
+        AND bind.ticket_id = #{ticketId}
+        )
+        <if test="null != tenantName and ''!= tenantName">
+            <bind name="pattern" value="'%'+_parameter.tenantName+'%'" />
+            AND t.tenant_name LIKE #{pattern}
+        </if>
+        order by t.id desc
+    </select>
+
 
 </mapper>

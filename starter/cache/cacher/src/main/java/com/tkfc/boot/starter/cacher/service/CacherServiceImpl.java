@@ -283,7 +283,9 @@ public class CacherServiceImpl extends AbstractCache {
                 queue = new ConcurrentLinkedQueue<>();
                 Cacher.getInstance().getQueueMap().put(key, queue);
             }
-            return queue.add(item);
+            // 与 Redis 一致：队列元素统一存 JSON 字符串，便于 lrem 精确 ACK
+            Object stored = item instanceof String ? item : JsonUtil.toJson(item);
+            return queue.add(stored);
         }
     }
 
@@ -311,7 +313,85 @@ public class CacherServiceImpl extends AbstractCache {
 
     @Override
     public <T> T brpopLpush(String sourceKey, String destinationKey, long timeout, TimeUnit timeUnit, Class<T> clazz) {
-        return null;
+        return rpoplpush(sourceKey, destinationKey, clazz);
+    }
+
+    @Override
+    public Long llen(String key) {
+        synchronized (QUEUE_LOCK_MONITOR) {
+            ConcurrentLinkedQueue<Object> queue = Cacher.getInstance().getQueueMap().get(key);
+            return queue == null ? 0L : (long) queue.size();
+        }
+    }
+
+    @Override
+    public Long lrem(String key, long count, Object item) {
+        synchronized (QUEUE_LOCK_MONITOR) {
+            ConcurrentLinkedQueue<Object> queue = Cacher.getInstance().getQueueMap().get(key);
+            if (queue == null || item == null) {
+                return 0L;
+            }
+            long removed = 0L;
+            if (count == 0) {
+                while (queue.remove(item)) {
+                    removed++;
+                }
+                return removed;
+            }
+            long limit = Math.abs(count);
+            for (long i = 0; i < limit; i++) {
+                if (!queue.remove(item)) {
+                    break;
+                }
+                removed++;
+            }
+            return removed;
+        }
+    }
+
+    @Override
+    public <T> T rpoplpush(String sourceKey, String destinationKey, Class<T> clazz) {
+        synchronized (QUEUE_LOCK_MONITOR) {
+            ConcurrentLinkedQueue<Object> source = Cacher.getInstance().getQueueMap().get(sourceKey);
+            if (source == null) {
+                return null;
+            }
+            Object item = source.poll();
+            if (item == null) {
+                return null;
+            }
+            ConcurrentLinkedQueue<Object> dest = Cacher.getInstance().getQueueMap().get(destinationKey);
+            if (dest == null) {
+                dest = new ConcurrentLinkedQueue<>();
+                Cacher.getInstance().getQueueMap().put(destinationKey, dest);
+            }
+            dest.offer(item);
+            if (String.class.isAssignableFrom(clazz)) {
+                return (T) (item instanceof String ? item : JsonUtil.toJson(item));
+            }
+            return JsonUtil.copyObject(item, clazz);
+        }
+    }
+
+    @Override
+    public List<String> lrange(String key, long start, long end) {
+        synchronized (QUEUE_LOCK_MONITOR) {
+            ConcurrentLinkedQueue<Object> queue = Cacher.getInstance().getQueueMap().get(key);
+            if (queue == null || queue.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<Object> all = Arrays.asList(queue.toArray());
+            int from = (int) Math.max(0, start);
+            int toExclusive = end < 0 ? all.size() : (int) Math.min(all.size(), end + 1);
+            if (from >= toExclusive) {
+                return Collections.emptyList();
+            }
+            List<String> result = new ArrayList<>();
+            for (Object item : all.subList(from, toExclusive)) {
+                result.add(item instanceof String ? (String) item : JsonUtil.toJson(item));
+            }
+            return result;
+        }
     }
 
     @Override

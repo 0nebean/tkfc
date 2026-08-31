@@ -104,43 +104,51 @@ public class JdbcDataSourceConfig {
     }
 
 
-    /**
-     * 配置监控服务器
-     *
-     * @return 返回监控注册的servlet对象
-     */
-    @Bean
-    public ServletRegistrationBean<StatViewServlet> statViewServlet() {
-        log.info("druid stat view servlet initializing...");
-        ServletRegistrationBean<StatViewServlet> servletRegistrationBean = new ServletRegistrationBean<>(new StatViewServlet(), "/druid/*");
-        // 添加IP白名单
-        servletRegistrationBean.addInitParameter("allow", PropUtil.getInstance().getConfig("com.alibaba.druid.ip.allow"));
-        // 添加IP黑名单，当白名单和黑名单重复时，黑名单优先级更高
-        servletRegistrationBean.addInitParameter("deny", PropUtil.getInstance().getConfig("com.alibaba.druid.ip.deny"));
-        // 添加控制台管理用户
-        servletRegistrationBean.addInitParameter("loginUsername", PropUtil.getInstance().getConfig("com.alibaba.druid.username"));
-        servletRegistrationBean.addInitParameter("loginPassword", PropUtil.getInstance().getConfig("com.alibaba.druid.password"));
-        // 是否能够重置数据
-        servletRegistrationBean.addInitParameter("resetEnable", "false");
-        //慢sql日志
-        servletRegistrationBean.addInitParameter("logSlowSql", PropUtil.getInstance().getConfig("com.alibaba.druid.logSlowSql"));
-        return servletRegistrationBean;
-    }
-
-    /**
-     * 配置服务过滤器
-     *
-     * @return 返回过滤器配置对象
-     */
-    @Bean
-    public FilterRegistrationBean<WebStatFilter> statFilter() {
-        FilterRegistrationBean<WebStatFilter> filterRegistrationBean = new FilterRegistrationBean<>(new WebStatFilter());
-        // 添加过滤规则
-        filterRegistrationBean.addUrlPatterns("/*");
-        // 忽略过滤格式
-        filterRegistrationBean.addInitParameter("exclusions", "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,");
-        return filterRegistrationBean;
-    }
+//    /**
+//     * 配置监控服务器
+//     *
+//     * 注意：Druid 1.2.x 版本的 StatViewServlet 基于 javax.servlet，与 Spring Boot 3.x 的 jakarta.servlet 不兼容
+//     * 暂时注释掉此配置，等待 Druid 发布完全支持 Jakarta EE 的版本
+//     *
+//     * @return 返回监控注册的servlet对象
+//     */
+//     @Bean
+//     @SuppressWarnings({"rawtypes", "unchecked"})
+//     public ServletRegistrationBean statViewServlet() {
+//         log.info("druid stat view servlet initializing...");
+//         ServletRegistrationBean servletRegistrationBean = new ServletRegistrationBean(new StatViewServlet(), "/druid/*");
+//         // 添加IP白名单
+//         servletRegistrationBean.addInitParameter("allow", PropUtil.getInstance().getConfig("com.alibaba.druid.ip.allow"));
+//         // 添加IP黑名单，当白名单和黑名单重复时，黑名单优先级更高
+//         servletRegistrationBean.addInitParameter("deny", PropUtil.getInstance().getConfig("com.alibaba.druid.ip.deny"));
+//         // 添加控制台管理用户
+//         servletRegistrationBean.addInitParameter("loginUsername", PropUtil.getInstance().getConfig("com.alibaba.druid.username"));
+//         servletRegistrationBean.addInitParameter("loginPassword", PropUtil.getInstance().getConfig("com.alibaba.druid.password"));
+//         // 是否能够重置数据
+//         servletRegistrationBean.addInitParameter("resetEnable", "false");
+//         //慢sql日志
+//         servletRegistrationBean.addInitParameter("logSlowSql", PropUtil.getInstance().getConfig("com.alibaba.druid.logSlowSql"));
+//         return servletRegistrationBean;
+//     }
+//
+//    /**
+//     * 配置服务过滤器
+//     *
+//     * 注意：Druid 1.2.x 版本的 WebStatFilter 基于 javax.servlet，与 Spring Boot 3.x 的 jakarta.servlet 不兼容
+//     * 暂时注释掉此配置，等待 Druid 发布完全支持 Jakarta EE 的版本
+//     *
+//     * @return 返回过滤器配置对象
+//     */
+//     @Bean
+//     @SuppressWarnings({"rawtypes", "unchecked"})
+//     public FilterRegistrationBean statFilter() {
+//         FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean(new WebStatFilter());
+//         // 添加过滤规则
+//         filterRegistrationBean.addUrlPatterns("/*");
+//         // 忽略过滤格式
+//         filterRegistrationBean.addInitParameter("exclusions", "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,");
+//         return filterRegistrationBean;
+//     }
 
 
     /**

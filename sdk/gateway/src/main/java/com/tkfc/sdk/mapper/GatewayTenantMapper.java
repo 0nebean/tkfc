@@ -27,4 +27,15 @@ public interface GatewayTenantMapper extends BaseMapper<GatewayTenant> {
      * @return list
      */
     List<GatewayTenant> findBindTenantInfo(@Param("userId") Long userId, @Param("tenantName") String tenantName, @Param("ticketId") String ticketId, @Param("pagination") Pagination pagination);
+
+    /**
+     * 查找未绑定角色的用户
+     *
+     * @param userId     用户ID
+     * @param tenantName 租户姓名
+     * @param ticketId ticket id
+     * @param pagination 分页
+     * @return list
+     */
+    List<GatewayTenant> findUnBindTenantInfo(@Param("userId") Long userId, @Param("tenantName") String tenantName,@Param("ticketId")  String ticketId, @Param("pagination") Pagination pagination);
 }

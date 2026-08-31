@@ -28,7 +28,7 @@ public class GatewayNoticeMsg {
     private String msgType;
 
     @BodyProperty(tag = "接口ID")
-    private String apiId;
+    private Long apiId;
 
     @BodyProperty(tag = "缓存key")
     private String redisKey;

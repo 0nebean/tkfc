@@ -1,31 +1,38 @@
 package com.tkfc.boot.starter.elasticsearch.extend;
 
-import com.tkfc.boot.starter.elasticsearch.pojo.PaginationES;
-import com.tkfc.boot.starter.elasticsearch.pojo.SortES;
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch.core.*;
+import co.elastic.clients.elasticsearch.core.SearchRequest.Builder;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.TotalHits;
+import co.elastic.clients.json.JsonData;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
+import com.tkfc.core.common.annotations.elasticsearch.ESField;
+import com.tkfc.core.enums.elasticsearch.ESFieldType;
+import com.tkfc.core.common.pojo.Pagination;
+import com.tkfc.core.common.pojo.Sort;
 import com.tkfc.core.toolkit.JsonUtil;
+import com.tkfc.core.toolkit.ParseUtil;
 import com.tkfc.core.toolkit.ReflectionUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 @Slf4j
 public class BaseServiceImplES<T extends BaseModelES, K extends BaseMapperES<T>> implements BaseServiceES<T> {
 
     /**
-     * dao原型属性
+     * dao 原型属性
      */
-    @Resource
+    @Autowired
+    @SuppressWarnings("all")
     protected K baseMapper;
 
     @Override
@@ -36,6 +43,18 @@ public class BaseServiceImplES<T extends BaseModelES, K extends BaseMapperES<T>>
     @Override
     public void createIndex(int shards, int replicas) {
         baseMapper.createIndex(shards, replicas);
+    }
+
+    @Override
+    public void createIndex() {
+        baseMapper.createIndex(1, 0);
+    }
+
+    @Override
+    public void createIndexIfNotExist() {
+        if (!existIndex()) {
+            baseMapper.createIndex(1, 0);
+        }
     }
 
     @Override
@@ -69,7 +88,7 @@ public class BaseServiceImplES<T extends BaseModelES, K extends BaseMapperES<T>>
     }
 
     @Override
-    public UpdateResponse update(T document) {
+    public UpdateResponse<JsonData> update(T document) {
         return baseMapper.update(document);
     }
 
@@ -80,10 +99,7 @@ public class BaseServiceImplES<T extends BaseModelES, K extends BaseMapperES<T>>
 
     @Override
     public T findById(String id) {
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.termQuery("_id", id));
-        searchSourceBuilder.size(1);
-        return findOne(searchSourceBuilder);
+        return findOne(s -> s.query(q -> q.ids(i -> i.values(id))), null, null);
     }
 
     @Override
@@ -92,122 +108,263 @@ public class BaseServiceImplES<T extends BaseModelES, K extends BaseMapperES<T>>
             return new ArrayList<>();
         }
 
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.termsQuery("_id", ids));
-        searchSourceBuilder.size(ids.size());
-        return find(searchSourceBuilder);
+        return find(s -> {
+            s.query(q -> q.ids(i -> i.values(ids)));
+            s.size(ids.size());
+        }, null, null);
     }
 
     @Override
-    public List<T> find(SearchSourceBuilder searchSourceBuilder, PaginationES pagination, SortES sort) {
-        // 应用分页参数
-        if (pagination != null) {
-            if (pagination.getPageSize() != null) {
-                searchSourceBuilder.size(pagination.getPageSize());
-            }
-
-            // 应用 searchAfter 分页（必须和排序一起使用）
-            if (pagination.getSearchAfter() != null && pagination.getSearchAfter().length > 0) {
-                if (sort == null || sort.orders.isEmpty()) {
-                    throw new ElasticsearchException("使用 searchAfter 分页时必须提供排序参数");
+    public List<T> find(Consumer<Builder> kql, Pagination pagination, Sort sort) {
+        SearchResponse<JsonData> searchResponse = baseMapper.findWithResponse(s -> {
+            kql.accept(s);
+            if (pagination != null) {
+                s.trackTotalHits(t -> t.enabled(true));
+                if (pagination.getPageSize() != null) {
+                    s.size(pagination.getPageSize());
                 }
-                searchSourceBuilder.searchAfter(pagination.getSearchAfter());
+
+                if (pagination.getSearchAfter() != null && pagination.getSearchAfter().length > 0) {
+                    if (sort == null || sort.orders.isEmpty()) {
+                        throw new IllegalStateException("使用 searchAfter 分页时必须提供排序参数");
+                    }
+                    validateSearchAfterLength(pagination, sort);
+                    List<FieldValue> after = new ArrayList<>();
+                    for (Object o : pagination.getSearchAfter()) {
+                        after.add(fieldValueFromObject(o));
+                    }
+                    s.searchAfter(after);
+                }
             }
+            if (sort != null && !sort.orders.isEmpty()) {
+                for (Sort.ESOrder order : sort.orders) {
+                    s.sort(so -> so.field(f -> f.field(order.getOrderBy()).order(sortOrderFromString(order.getSort()))));
+                }
+            }
+        });
+
+        if (pagination != null) {
+            pagination.setTotalCount(ParseUtil.toInt(count(kql)));
         }
 
-        // 应用排序参数
-        if (sort != null && !sort.orders.isEmpty()) {
-            for (SortES.ESOrder order : sort.orders) {
-                searchSourceBuilder.sort(order.getProperty(), order.getDirection());
-            }
-        }
-
-        // 调用baseMapper的findWithResponse方法执行查询
-        SearchResponse searchResponse = baseMapper.findWithResponse(searchSourceBuilder);
-
-        // 解析搜索结果
         List<T> results = new ArrayList<>();
-        SearchHit[] hits = searchResponse.getHits().getHits();
+        List<Hit<JsonData>> hits = searchResponse.hits().hits();
 
-        for (SearchHit hit : hits) {
+        for (Hit<JsonData> hit : hits) {
             try {
                 Class<?> clazz = ReflectionUtil.findParameterizedType(this.getClass(), 0);
                 if (clazz == null) {
-                    throw new ElasticsearchException("无法获取泛型类型，请检查类定义");
+                    throw new IllegalStateException("无法获取泛型类型，请检查类定义");
                 }
-                // 使用反射创建对象，提高性能
-                T document = (T) JsonUtil.toBean(hit.getSourceAsString(), clazz);
+                JsonData source = hit.source();
+                if (source == null) {
+                    continue;
+                }
+                String sourceJson = source.toJson().toString();
+                sourceJson = normalizeTextFieldsForRead(sourceJson, clazz);
+                T document = (T) JsonUtil.toBean(sourceJson, clazz);
                 results.add(document);
             } catch (Exception e) {
-                log.error("解析搜索结果失败，hit ID: " + hit.getId(), e);
+                log.error("解析搜索结果失败，hit ID: " + hit.id(), e);
             }
         }
 
-        // 处理searchAfter分页
-        if (pagination != null && hits.length > 0) {
-            // 获取最后一个文档的 searchAfter 值，用于下次分页
-            Object[] lastSearchAfter = hits[hits.length - 1].getSortValues();
-            pagination.setSearchAfter(lastSearchAfter);
+        if (pagination != null && !hits.isEmpty()) {
+            List<FieldValue> lastSort = hits.get(hits.size() - 1).sort();
+            if (lastSort != null && !lastSort.isEmpty()) {
+                Object[] arr = new Object[lastSort.size()];
+                for (int i = 0; i < lastSort.size(); i++) {
+                    arr[i] = fieldValueToObject(lastSort.get(i));
+                }
+                pagination.setSearchAfter(arr);
+            }
         }
 
         return results;
     }
 
-    @Override
-    public List<T> find(SearchSourceBuilder searchSourceBuilder) {
-        return find(searchSourceBuilder, null, null);
+    /** 业务侧仅传 {@code ASC} / {@code DESC}，映射为 ES 的 {@link SortOrder#Asc} / {@link SortOrder#Desc}。 */
+    private static SortOrder sortOrderFromString(String sort) {
+        if (sort == null || sort.isBlank()) {
+            return SortOrder.Desc;
+        }
+        String s = sort.trim();
+        if ("ASC".equalsIgnoreCase(s)) {
+            return SortOrder.Asc;
+        }
+        if ("DESC".equalsIgnoreCase(s)) {
+            return SortOrder.Desc;
+        }
+        throw new IllegalArgumentException("sort 仅支持 ASC / DESC: " + sort);
+    }
+
+    private static void validateSearchAfterLength(Pagination pagination, Sort sort) {
+        Object[] searchAfter = pagination.getSearchAfter();
+        if (searchAfter == null || searchAfter.length == 0) {
+            return;
+        }
+        int sortSize = sort.orders.size();
+        if (searchAfter.length != sortSize) {
+            throw new IllegalArgumentException(
+                    "searchAfter 长度与排序字段数量不一致: searchAfterLength=" + searchAfter.length + ", sortSize=" + sortSize);
+        }
+    }
+
+    private static FieldValue fieldValueFromObject(Object o) {
+        return switch (o) {
+            case null -> throw new IllegalArgumentException("searchAfter 元素不能为 null");
+            case String s -> FieldValue.of(s);
+            case Long l -> FieldValue.of(l);
+            case Integer i -> FieldValue.of(i.longValue());
+            case Double d -> FieldValue.of(d);
+            case Float f -> FieldValue.of(f.doubleValue());
+            case Boolean b -> FieldValue.of(b);
+            default -> FieldValue.of(String.valueOf(o));
+        };
+    }
+
+    private static Object fieldValueToObject(FieldValue fv) {
+        if (fv.isLong()) {
+            return fv.longValue();
+        }
+        if (fv.isString()) {
+            return fv.stringValue();
+        }
+        if (fv.isDouble()) {
+            return fv.doubleValue();
+        }
+        if (fv.isBoolean()) {
+            return fv.booleanValue();
+        }
+        if (fv.isNull()) {
+            return null;
+        }
+        throw new IllegalStateException("不支持的 sort 值类型: " + fv._kind());
+    }
+
+    private static String normalizeTextFieldsForRead(String sourceJson, Class<?> clazz) {
+        if (sourceJson == null || sourceJson.isBlank() || clazz == null) {
+            return sourceJson;
+        }
+        JSONObject root = JSONObject.parseObject(sourceJson);
+        normalizeJsonTextFieldsForRead(root, clazz);
+        return root.toJSONString();
+    }
+
+    private static void normalizeJsonTextFieldsForRead(JSONObject json, Class<?> clazz) {
+        if (json == null || clazz == null) {
+            return;
+        }
+        for (Field field : clazz.getDeclaredFields()) {
+            var esField = field.getAnnotation(ESField.class);
+            if (esField == null) {
+                continue;
+            }
+            String name = esField.name();
+            if (name == null || name.isBlank()) {
+                name = field.getName();
+            }
+            if (!json.containsKey(name)) {
+                continue;
+            }
+            Object value = json.get(name);
+            if (value == null) {
+                continue;
+            }
+            ESFieldType type = esField.type();
+
+            if (type == ESFieldType.Text && value instanceof String s) {
+                Class<?> ft = field.getType();
+                try {
+                    if (JSONArray.class.isAssignableFrom(ft) && s.startsWith("[")) {
+                        json.put(name, JSONArray.parseArray(s));
+                    } else if (JSONObject.class.isAssignableFrom(ft) && s.startsWith("{")) {
+                        json.put(name, JSONObject.parseObject(s));
+                    }
+                } catch (Exception ignore) {
+                }
+                continue;
+            }
+
+            if ((type == ESFieldType.Object || type == ESFieldType.NESTED) && shouldWalkNestedType(field.getType())) {
+                if (value instanceof JSONObject childObj) {
+                    normalizeJsonTextFieldsForRead(childObj, field.getType());
+                } else if (value instanceof JSONArray arr) {
+                    for (Object item : arr) {
+                        if (item instanceof JSONObject childItem) {
+                            normalizeJsonTextFieldsForRead(childItem, field.getType());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean shouldWalkNestedType(Class<?> type) {
+        if (type == null || type.isPrimitive() || type.isEnum()) {
+            return false;
+        }
+        Package p = type.getPackage();
+        if (p == null) {
+            return false;
+        }
+        String pkg = p.getName();
+        return pkg.startsWith("com.tkfc.") && !type.isInterface();
     }
 
     @Override
-    public List<T> find(SearchSourceBuilder searchSourceBuilder, SortES sort) {
-        return find(searchSourceBuilder, null, sort);
+    public List<T> find(Consumer<Builder> kql) {
+        return find(kql, null, null);
     }
 
     @Override
-    public T findOne(SearchSourceBuilder searchSourceBuilder) {
-        List<T> results = find(searchSourceBuilder, null, null);
+    public List<T> find(Consumer<Builder> kql, Sort sort) {
+        return find(kql, null, sort);
+    }
+
+    @Override
+    public T findOne(Consumer<Builder> kql) {
+        List<T> results = find(kql, null, null);
         return results.isEmpty() ? null : results.get(0);
     }
 
     @Override
-    public T findOne(SearchSourceBuilder searchSourceBuilder, SortES sort) {
-        List<T> results = find(searchSourceBuilder, null, sort);
+    public T findOne(Consumer<Builder> kql, Sort sort) {
+        List<T> results = find(kql, null, sort);
         return results.isEmpty() ? null : results.get(0);
     }
 
     @Override
-    public T findOne(SearchSourceBuilder searchSourceBuilder, PaginationES pagination, SortES sort) {
-        List<T> results = find(searchSourceBuilder, pagination, sort);
+    public T findOne(Consumer<Builder> kql, Pagination pagination, Sort sort) {
+        List<T> results = find(kql, pagination, sort);
         return results.isEmpty() ? null : results.get(0);
     }
 
     @Override
     public Long count() {
-        // 先检查索引是否存在
         if (!existIndex()) {
             return 0L;
         }
-        
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.size(0); // 只返回总数，不返回文档内容
-        return count(searchSourceBuilder);
+
+        return findWithTotal(s -> s.query(q -> q.matchAll(m -> m)));
     }
 
     @Override
-    public Long count(SearchSourceBuilder searchSourceBuilder) {
-        // 先检查索引是否存在
+    public Long count(Consumer<Builder> kql) {
         if (!existIndex()) {
             return 0L;
         }
-        
-        // 设置size为0，只返回总数，不返回文档内容
-        searchSourceBuilder.size(0);
-        
-        // 调用baseMapper的findWithResponse方法执行查询
-        SearchResponse searchResponse = baseMapper.findWithResponse(searchSourceBuilder);
-        
-        // 返回总数
-        return searchResponse.getHits().getTotalHits().value;
+
+        return findWithTotal(kql);
+    }
+
+    private long findWithTotal(Consumer<Builder> kql) {
+        SearchResponse<JsonData> searchResponse = baseMapper.findWithResponse(s -> {
+            kql.accept(s);
+            s.size(0);
+            s.trackTotalHits(t -> t.enabled(true));
+        });
+        return Optional.ofNullable(searchResponse.hits().total()).map(TotalHits::value).orElse(0L);
     }
 
 }

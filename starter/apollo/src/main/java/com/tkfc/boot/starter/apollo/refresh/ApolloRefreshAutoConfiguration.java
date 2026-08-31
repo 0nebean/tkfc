@@ -3,7 +3,7 @@ package com.tkfc.boot.starter.apollo.refresh;
 import java.util.Objects;
 import java.util.Set;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggingSystem;

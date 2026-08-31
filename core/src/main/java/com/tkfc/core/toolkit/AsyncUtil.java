@@ -2,7 +2,9 @@ package com.tkfc.core.toolkit;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * 异步执行类
@@ -15,52 +17,17 @@ public class AsyncUtil {
 
 
     /**
-     * 最大队列长度
-     */
-    private static final int QUEUE_LIMIT = 200;
-    private static final int CORE_POOL_SIZE = 50;
-    private static final int MAX_POOL_SIZE = 200;
-    private static final long KEEP_ALIVE_TIME = 60L;
-
-    private static final BlockingQueue<Runnable> TASK_QUEUE = new LinkedBlockingQueue<>(QUEUE_LIMIT);
-
-
-    /**
-     * 拒绝策略 同步执行
-     */
-    private final static RejectedExecutionHandler THREAD_POOL_EXEC_FAILURE_CALL_BACK = (runnable, threadPoolExecutor) -> {
-        log.warn("AsyncUtil Thread pool is full, task will be rejected. Pool size = {}, Active threads = {}, Queue size = {}", threadPoolExecutor.getPoolSize(), threadPoolExecutor.getActiveCount(), threadPoolExecutor.getQueue().size());
-    };
-
-    /**
-     * 额定线程数线程池
-     */
-    private static final ThreadPoolExecutor ASYNC_TASK_THREAD_POOL;
-
-    /**
      * 线程工厂类
      */
-    private static final ThreadFactory THREAD_FACTORY = r -> {
-        Thread thread = new Thread(r);
-        thread.setUncaughtExceptionHandler((t, e) -> log.error("async thread catch an error , e = ", e));
-        return thread;
-    };
+    private static final ThreadFactory THREAD_FACTORY = Thread.ofVirtual()
+            .name("tkfc-async-vt-", 0)
+            .uncaughtExceptionHandler((t, e) -> log.error("async virtual thread catch an error , e = ", e))
+            .factory();
 
-
-    /*
-       初始化线程数的线程池
-      */
-    static {
-        ASYNC_TASK_THREAD_POOL = new ThreadPoolExecutor(
-                CORE_POOL_SIZE,
-                MAX_POOL_SIZE,
-                KEEP_ALIVE_TIME,
-                TimeUnit.SECONDS,
-                TASK_QUEUE,
-                THREAD_FACTORY,
-                THREAD_POOL_EXEC_FAILURE_CALL_BACK
-        );
-    }
+    /**
+     * 虚拟线程执行器：每个任务一个虚拟线程
+     */
+    private static final ExecutorService ASYNC_TASK_EXECUTOR = Executors.newThreadPerTaskExecutor(THREAD_FACTORY);
 
     /**
      * 获取线程工厂类
@@ -75,7 +42,7 @@ public class AsyncUtil {
      * @param asyncTask 异步执行的代码
      */
     public static void async(Runnable asyncTask) {
-        ASYNC_TASK_THREAD_POOL.execute(new Thread(asyncTask));
+        ASYNC_TASK_EXECUTOR.execute(asyncTask);
     }
 
     /**
@@ -87,6 +54,7 @@ public class AsyncUtil {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("when thread sleep got interrupted exception , e = ", e);
         }
     }

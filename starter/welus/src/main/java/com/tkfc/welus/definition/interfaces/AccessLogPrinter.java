@@ -2,7 +2,7 @@ package com.tkfc.welus.definition.interfaces;
 
 import com.alibaba.fastjson2.JSONObject;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 访问日志打印

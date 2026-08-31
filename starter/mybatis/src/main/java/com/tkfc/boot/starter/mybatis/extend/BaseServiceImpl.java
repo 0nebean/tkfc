@@ -44,8 +44,10 @@ public abstract class BaseServiceImpl<T extends BaseModel, V extends BaseVo<T>, 
 
     @Override
     public Integer deleteByIds(List<Long> ids) {
-        return baseMapper.delete(SqlBuilder.<T>init().in(BaseModel::getId, Collections.singletonList(ids))
-                .orderByDesc(BaseModel::getId).withOutPrefix());
+        if (CollectionUtil.isEmpty(ids)) {
+            return 0;
+        }
+        return baseMapper.delete(SqlBuilder.<T>init().in(BaseModel::getId, ids).orderByDesc(BaseModel::getId).withOutPrefix());
     }
 
     @Override
@@ -61,8 +63,10 @@ public abstract class BaseServiceImpl<T extends BaseModel, V extends BaseVo<T>, 
 
     @Override
     public Integer deleteByIdsPhysically(List<Long> ids) {
-        return baseMapper.deletePhysically(SqlBuilder.<T>init().in(BaseModel::getId, Collections.singletonList(ids))
-                .orderByDesc(BaseModel::getId).withOutPrefix());
+        if (CollectionUtil.isEmpty(ids)) {
+            return 0;
+        }
+        return baseMapper.deletePhysically(SqlBuilder.<T>init().in(BaseModel::getId, ids).orderByDesc(BaseModel::getId).withOutPrefix());
     }
 
     @Override
@@ -166,8 +170,10 @@ public abstract class BaseServiceImpl<T extends BaseModel, V extends BaseVo<T>, 
 
     @Override
     public List<T> findByIds(List<Long> ids) {
-        return baseMapper.find(
-                SqlBuilder.<T>init().in(BaseModel::getId, Collections.singletonList(ids)).orderByDesc(BaseModel::getId));
+        if (CollectionUtil.isEmpty(ids)) {
+            return new ArrayList<>();
+        }
+        return baseMapper.find(SqlBuilder.<T>init().in(BaseModel::getId, ids).orderByDesc(BaseModel::getId));
     }
 
     @Override

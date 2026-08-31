@@ -4,6 +4,7 @@ import com.tkfc.core.constants.StringPool;
 import com.tkfc.core.throwable.base.Assert;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
@@ -179,6 +180,21 @@ public class NumberUtil {
     public static int getRandom(int max, int min) {
         Random random = new Random();
         return random.nextInt(max) % (max - min + 1) + min;
+    }
+
+    /**
+     * 生成指定范围内的随机double值，并保留指定的小数位数。
+     *
+     * @param min 指定的最小值
+     * @param max 指定的最大值
+     * @param scale 保留的小数位数
+     * @return 返回一个介于min和max之间的随机double值，该值保留到指定的小数位数（四舍五入）
+     */
+    public static double getRandomDouble(double min, double max, int scale) {
+        Random random = new Random();
+        double value = min + (max - min) * random.nextDouble();
+        // 保留指定小数位数（四舍五入）
+        return BigDecimal.valueOf(value).setScale(scale, RoundingMode.HALF_UP).doubleValue();
     }
 
     /**

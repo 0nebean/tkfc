@@ -1,27 +1,30 @@
 package com.tkfc.sdk.listener;
 
-import com.tkfc.core.common.pojo.BaseResponse;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
+import com.tkfc.cache.base.interfaces.ICacheService;
+import com.tkfc.cache.base.interfaces.ILock;
+import com.tkfc.core.constants.StringPool;
 import com.tkfc.core.throwable.base.Assert;
 import com.tkfc.core.toolkit.*;
+import com.tkfc.sdk.biz.GatewayFileBiz;
+import com.tkfc.sdk.consts.CommonApi;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.annotation.Order;
+
+import java.io.File;
+import java.util.Objects;
 
 @Slf4j
 @Order(value = 7)
 public class DevopsListener implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
-    @SuppressWarnings("all")
-    private final static String REPORT_API_URL_DEFAULT_PREFIX = "http://";
-    private final static String REPORT_API_URL_HTTPS_PREFIX = "https://";
-    private final static String GATEWAY_REPORT_HEALTH_APP_KEY = "gateway.report.appKey";
-    private final static String GATEWAY_REPORT_HEALTH_VERSION = "gateway.report.version";
+
     private final static String GATEWAY_REPORT_HEALTH_INFO_FLAG = "gateway.report.health.flag";
-    private final static String GATEWAY_REPORT_HEALTH_SERVER_HOST = "gateway.report.health.host";
-    private static final String REPORT_API_BASE = "/gatewayApp/gatewayAppInstNode/health?version=%s&appKey=%s";
-    
+
+
     @Override
     public void initialize(ConfigurableApplicationContext applicationContext) {
         log.info("devops tool initializing, report node health info");
@@ -36,40 +39,35 @@ public class DevopsListener implements ApplicationContextInitializer<Configurabl
     /**
      * 上报健康信息
      */
-    public void reportHealthInfo() {
+    public void reportHealthInfo()  {
         String reportFlag = PropUtil.getInstance().getConfig(GATEWAY_REPORT_HEALTH_INFO_FLAG);
         Boolean reportFlagBool = ParseUtil.toBoolean(reportFlag);
         if (reportFlagBool) {
-            String requestUrl = handleHealthReportUrl();
-            log.info("reporting node health info to gateway management server, requestUrl = {}", requestUrl);
-            BaseResponse<Boolean> response = RestUtil.getInstance().doGetForRef(requestUrl, null, new ParameterizedTypeReference<>() {
+            GatewayFileBiz fileBiz = SpringUtil.getBean(GatewayFileBiz.class);
+            String machineId = EnvUtil.getEnvProps("machineId");
+            String port = EnvUtil.getEnvProps("port");
+            CommonApi.getCurrentAppReportJson((reportHealthJsonArr, fileName, remotePath)->{
+                Assert.notNull(reportHealthJsonArr, "un know app version");
+                try {
+                    for (int i = 0; i < reportHealthJsonArr.size(); i++) {
+                        JSONObject jsonObject = reportHealthJsonArr.getJSONObject(i);
+                        boolean samePort = StringUtil.isNotBlank(jsonObject.getString("port")) && Objects.equals(jsonObject.getString("port"), port);
+                        boolean sameMachineId = StringUtil.isNotBlank(jsonObject.getString("machineId")) &&  Objects.equals(jsonObject.getString("machineId"), machineId);
+                        if (samePort && sameMachineId) {
+                            jsonObject.put("startup", "done");
+                            String path = String.format("%s%s.json", GatewayFileBiz.getUploadTempPath(), fileName);
+                            IoUtil.writeFile(reportHealthJsonArr.toJSONString(), path);
+                            File uploadFile = new File(path);
+                            fileBiz.uploadFile(uploadFile, remotePath, fileName);
+                            IoUtil.deleteQuietly(uploadFile);
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    Assert.fail(e, "report node health info to gateway failure");
+                }
             });
-            log.info("report resp = {}", JsonUtil.toJson(response));
-            Assert.isTrue(response.getData(), "report node health info to gateway failure");
         }
-    }
-
-    /**
-     * 获取报告 url
-     *
-     * @return url
-     */
-    private static String handleHealthReportUrl() {
-        String appKey = PropUtil.getInstance().getConfig(GATEWAY_REPORT_HEALTH_APP_KEY);
-        String version = PropUtil.getInstance().getConfig(GATEWAY_REPORT_HEALTH_VERSION);
-        String configUrl = PropUtil.getInstance().getConfig(GATEWAY_REPORT_HEALTH_SERVER_HOST);
-        Assert.notBlank(appKey, "report api appKey config can not be empty");
-        Assert.notBlank(configUrl, "report api url config can not be empty");
-        Assert.notBlank(version, "report version url config can not be empty");
-        if (!configUrl.startsWith("http")) {
-            // 判断是否为IP地址，如果是IP则使用http，如果是域名则使用https
-            if (StringUtil.isIpAddress(configUrl)) {
-                configUrl = REPORT_API_URL_DEFAULT_PREFIX + configUrl;
-            } else {
-                configUrl = REPORT_API_URL_HTTPS_PREFIX + configUrl;
-            }
-        }
-        return String.format(configUrl + REPORT_API_BASE, version, appKey);
     }
 
 }

@@ -16,13 +16,16 @@
     <resultMap id="basicResultMap" type="${modelPackageName}.${modelName}">
             <id column="id" jdbcType="INTEGER" property="id"/>
         <#list fieldArr as item>
-            <#if item.columnType != 'JSONObject' && item.columnType != 'JSONArray'>
+            <#if item.isEnum>
+            <result column="${item.originalName}" jdbcType="${item.jdbcType}" property="${item.columnName}" javaType="${item.enumPackageName}.${item.enumClassName}" typeHandler="com.tkfc.boot.starter.mybatis.builder.EnumValueTypeHandler"/>
+            </#if>
+            <#if !item.isEnum && item.columnType != 'JSONObject' && item.columnType != 'JSONArray'>
             <result column="${item.originalName}" jdbcType="${item.jdbcType}" property="${item.columnName}"/>
             </#if>
-            <#if item.columnType == 'JSONObject'>
+            <#if !item.isEnum && item.columnType == 'JSONObject'>
             <result column="${item.originalName}" jdbcType="OTHER" property="${item.columnName}" typeHandler="com.tkfc.boot.starter.mybatis.builder.JsonObjectHandler"/>
             </#if>
-            <#if item.columnType == 'JSONArray'>
+            <#if !item.isEnum && item.columnType == 'JSONArray'>
             <result column="${item.originalName}" jdbcType="OTHER" property="${item.columnName}" typeHandler="com.tkfc.boot.starter.mybatis.builder.JsonArrayHandler"/>
             </#if>
         </#list>

@@ -1,5 +1,6 @@
 package com.tkfc.welus.config;
 
+import com.tkfc.welus.handler.ResponseViewHandler;
 import com.tkfc.welus.interceptor.AuthorizationInterceptor;
 import com.tkfc.welus.listener.WelusReadyListener;
 import com.tkfc.welus.resolver.BodyParamResolver;
@@ -10,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -45,6 +47,12 @@ public class WelusConfig implements WebMvcConfigurer {
         log.info("load custom body param resolver");
 
         WebMvcConfigurer.super.addArgumentResolvers(resolvers);
+    }
+
+    @Override
+    public void addReturnValueHandlers(List<HandlerMethodReturnValueHandler> handlers) {
+        // 使用 Spring MVC 标准扩展点注册，避免依赖 RequestMappingHandlerAdapter 内部 handler 列表的时机/顺序
+        handlers.add(0, new ResponseViewHandler());
     }
 
     @Override

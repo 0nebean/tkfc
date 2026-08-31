@@ -1,13 +1,12 @@
 package com.tkfc.welus.definition.abstracts;
 
 import com.alibaba.fastjson2.JSONWriter;
+import com.tkfc.core.common.annotations.web.response.*;
 import com.tkfc.core.common.annotations.web.response.Enum;
-import com.tkfc.core.common.annotations.web.response.JsonMapping;
-import com.tkfc.core.common.annotations.web.response.MaxShowLength;
-import com.tkfc.core.common.annotations.web.response.Wrap;
 import com.tkfc.core.common.pojo.BaseResponse;
 import com.tkfc.core.toolkit.*;
 import com.tkfc.welus.definition.interfaces.FieldCovertWrapper;
+import com.tkfc.welus.interceptor.checker.OssAccessUrlConverter;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -57,18 +56,85 @@ public abstract class BaseCovertWrapper extends BaseMethodChecker implements Fie
 
     @Override
     public void warpFieldJsonValue(Object target) {
+        if (Objects.isNull(target)) {
+            return;
+        }
         for (Field field : ReflectionUtil.getAccessibleFields(target.getClass())) {
             if (field.isAnnotationPresent(JsonMapping.class)) {
                 JsonMapping jsonMapping = field.getAnnotation(JsonMapping.class);
-                String mappingField = StringUtil.isNotBlank(jsonMapping.mapping()) ? jsonMapping.mapping() : field.getName() + "Json";
+                String mappingField = StringUtil.isNotBlank(jsonMapping.mapping()) ? jsonMapping.mapping()
+                        : field.getName() + "Json";
                 Object fieldVal = ReflectionUtil.invokeGetterMethod(target, field.getName());
-                ReflectionUtil.invokeSetterMethod(target, mappingField, JsonUtil.toJsonWithFeatures(fieldVal, JSONWriter.Feature.PrettyFormat));
+                ReflectionUtil.invokeSetterMethod(target, mappingField,
+                        JsonUtil.toJsonWithFeatures(fieldVal, JSONWriter.Feature.PrettyFormat));
+            }
+        }
+    }
+
+    @Override
+    public void warpOssAccessUrl(Object target) {
+        if (Objects.isNull(target)) {
+            return;
+        }
+        if (List.class.isAssignableFrom(target.getClass())) {
+            if (CollectionUtil.isEmpty((Collection<?>) target)) {
+                return;
+            } else {
+                List<?> tempList = (List<?>) target;
+                for (Object o : tempList) {
+                    warpOssAccessUrl(o);
+                }
+                return;
+            }
+        }
+        for (Field field : ReflectionUtil.getAccessibleFields(target.getClass())) {
+            // 跳过 JsonMapping 注解的字段，因为 JSON 字段已经在 warpFieldJsonValue 方法中处理了
+            if (field.isAnnotationPresent(JsonMapping.class)) {
+                continue;
+            }
+            // 安全地获取字段值，如果 getter 方法不存在则使用直接读取字段值的方式
+            Object fieldVal = null;
+            try {
+                fieldVal = ReflectionUtil.invokeGetterMethod(target, field.getName());
+            } catch (IllegalArgumentException e) {
+                continue;
+            }
+            if (Objects.isNull(fieldVal)) {
+                continue;
+            }
+            // 如果field 是一个List<Obj> 需要遍历 field 调用 warpOssAccessUrl
+            if (List.class.isAssignableFrom(fieldVal.getClass())) {
+                List<?> fieldList = (List<?>) fieldVal;
+                if (!CollectionUtil.isEmpty(fieldList)) {
+                    for (Object o : fieldList) {
+                        warpOssAccessUrl(o);
+                    }
+                }
+                continue;
+            }
+            // 如果字段有OssAccessUrl注解，直接转换URL
+            if (field.isAnnotationPresent(OssAccessUrl.class)) {
+                if (StringUtil.isBlank(fieldVal.toString())) {
+                    continue;
+                }
+                OssAccessUrlConverter permissionChecker = SpringUtil.getBean(OssAccessUrlConverter.class);
+                if (Objects.isNull(permissionChecker)) {
+                    continue;
+                }
+                ReflectionUtil.invokeSetterMethod(target, field.getName(),
+                        permissionChecker.convertAccessUrl(fieldVal.toString()));
+                continue;
+            }
+            // 如果字段有RecursiveOssAccessUrl注解，递归处理对象类型的字段
+            if (field.isAnnotationPresent(RecursiveOssAccessUrl.class)) {
+                warpOssAccessUrl(fieldVal);
             }
         }
     }
 
     private void doCovertField(Object tempTarget) {
-        List<Field> fields = Optional.ofNullable(tempTarget).map(Object::getClass).map(Class::getDeclaredFields).map(f -> Arrays.asList(f)).orElse(Collections.EMPTY_LIST);
+        List<Field> fields = Optional.ofNullable(tempTarget).map(Object::getClass).map(Class::getDeclaredFields)
+                .map(f -> Arrays.asList(f)).orElse(Collections.EMPTY_LIST);
         if (CollectionUtil.isEmpty(fields)) {
             return;
         }
@@ -79,14 +145,17 @@ public abstract class BaseCovertWrapper extends BaseMethodChecker implements Fie
                 if (fieldValue instanceof List) {
                     List<?> listValue = (List<?>) fieldValue;
                     for (Object val : listValue) {
-                        List<Field> fieldList = Optional.ofNullable(val).map(Object::getClass).map(Class::getDeclaredFields).map(f -> Arrays.asList(f)).orElse(Collections.EMPTY_LIST);
+                        List<Field> fieldList = Optional.ofNullable(val).map(Object::getClass)
+                                .map(Class::getDeclaredFields).map(f -> Arrays.asList(f))
+                                .orElse(Collections.EMPTY_LIST);
                         for (Field f : fieldList) {
                             doSetEnumValue(val, f);
                             doSetMaxLengthValue(val, f);
                         }
                     }
                 } else {
-                    List<Field> fieldList = Optional.ofNullable(fieldValue).map(Object::getClass).map(Class::getDeclaredFields).map(f -> Arrays.asList(f)).orElse(Collections.EMPTY_LIST);
+                    List<Field> fieldList = Optional.ofNullable(fieldValue).map(Object::getClass)
+                            .map(Class::getDeclaredFields).map(f -> Arrays.asList(f)).orElse(Collections.EMPTY_LIST);
                     for (Field f : fieldList) {
                         doSetEnumValue(fieldValue, f);
                         doSetMaxLengthValue(fieldValue, f);
@@ -120,7 +189,9 @@ public abstract class BaseCovertWrapper extends BaseMethodChecker implements Fie
             try {
 
                 enumValue = EnumsUtil.getDescriptionByValue(enumClz, value);
-//                enumValue = ReflectionUtil.invokeMethod(enumClz, GET_DESCRIPTION_BY_VALUE_METHOD_NAME, CollectionUtil.asArray(String.class), CollectionUtil.asArray(value));
+                // enumValue = ReflectionUtil.invokeMethod(enumClz,
+                // GET_DESCRIPTION_BY_VALUE_METHOD_NAME, CollectionUtil.asArray(String.class),
+                // CollectionUtil.asArray(value));
             } catch (Exception ignore) {
             }
             if (StringUtil.isEmpty(enumValue)) {
@@ -142,7 +213,9 @@ public abstract class BaseCovertWrapper extends BaseMethodChecker implements Fie
             int maxlength = annotation.maxlength();
             Object val = ReflectionUtil.invokeGetterMethod(target, field.getName());
             String strVal = val.toString();
-            String finalValue = (StringUtil.isNotBlank(strVal) && strVal.length() > maxlength) ? StringUtil.concat(strVal.substring(0, maxlength), "...") : strVal;
+            String finalValue = (StringUtil.isNotBlank(strVal) && strVal.length() > maxlength)
+                    ? StringUtil.concat(strVal.substring(0, maxlength), "...")
+                    : strVal;
             ReflectionUtil.invokeSetterMethod(target, field.getName(), finalValue);
         }
     }

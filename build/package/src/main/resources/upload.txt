@@ -1,0 +1,13 @@
+############################################## package ##############################################
+# 压缩文件:
+del ./package.tar.gz
+
+
+tar -zcvf ./package.tar.gz -C ./src/main/resources/ package
+
+# 上传pom.xml:
+mvn deploy -Ppom
+
+# 上传文件:
+mvn deploy:deploy-file  -DgroupId=com.tkfc  -DartifactId=com.tkfc.package.tar.gz  -Dversion=1.0.8-release  -Dpackaging=tar.gz  -DrepositoryId=repo-nexus  -Dfile=./package.tar.gz  -Durl=http://127.0.0.1:8081/repository/maven-releases/
+

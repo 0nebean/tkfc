@@ -1,6 +1,6 @@
 package ${servicePackageName};
 
-<#if isSplitTable == true>
+<#if isSplitTable>
 import com.tkfc.boot.starter.mybatis.extend.BaseSplitService;
 <#else>
 import com.tkfc.boot.starter.mybatis.extend.BaseService;
@@ -20,7 +20,7 @@ import java.util.Set;
  * @author ${author}
  * @since ${createTime}
  */
-<#if isSplitTable == true>
+<#if isSplitTable>
 public interface ${modelName}Service extends BaseSplitService<${modelName}, ${modelName}Vo> {
 <#else>
 public interface ${modelName}Service extends BaseService<${modelName}, ${modelName}Vo> {
@@ -30,25 +30,25 @@ public interface ${modelName}Service extends BaseService<${modelName}, ${modelNa
     /**
      * 异步查询树
      *
-     *<#if isSplitTable == true>@param tenantId    租户ID</#if>,
+     *<#if isSplitTable>@param tenantId    租户ID</#if>,
      * @param parentId    父级ID
      * @param selectedIds 选中的ID
      * @param expressions 条件表达式
      * @param allowFields 允许查询的字段
      * @return 菜单树
      */
-     List<${modelName}Tree> findChildAsync(<#if isSplitTable == true>String tenantId, </#if>Long parentId, Set<Long> selectedIds, String[] expressions, String[] allowFields);
+     List<${modelName}Tree> findChildAsync(<#if isSplitTable>String tenantId, </#if>Long parentId, Set<Long> selectedIds, String[] expressions, String[] allowFields);
 
     /**
      * 同步查询树
      *
-     *<#if isSplitTable == true>@param tenantId    租户ID</#if>,
+     *<#if isSplitTable>@param tenantId    租户ID</#if>,
      * @param selfId      自身的ID
      * @param selectedIds 选中的ID
      * @param expressions 条件表达式
      * @param allowFields 允许查询的字段
      * @return 菜单树
      */
-     List<${modelName}Tree> findChildSync(<#if isSplitTable == true>String tenantId, </#if>Long selfId, Set<Long> selectedIds, String[] expressions, String[] allowFields);
+     List<${modelName}Tree> findChildSync(<#if isSplitTable>String tenantId, </#if>Long selfId, Set<Long> selectedIds, String[] expressions, String[] allowFields);
 </#if>
 }

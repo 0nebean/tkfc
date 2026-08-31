@@ -9,6 +9,7 @@ import com.tkfc.sdk.biz.GatewayAuthBiz;
 import com.tkfc.sdk.pojo.dto.*;
 import com.tkfc.sdk.pojo.vo.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ import java.util.List;
  * @author 0neBean
  * @since 2023-03-23 21:51:24
  */
+@Slf4j
 @RequiredArgsConstructor
 @Action(tag = "网关鉴权", path = "auth")
 public class GatewayAuthAction {
@@ -73,8 +75,8 @@ public class GatewayAuthAction {
     }
 
     @IgnoreReportDoc
-    @PostJson(authors = {"0neBean"}, tag = "查询租户信息", path = {"selectTenant"})
-    public Boolean selectTenant(@BodyParam(tag = "查询租户信息") GatewaySelectTenantReqDto req) {
+    @PostJson(authors = {"0neBean"}, tag = "选中租户信息", path = {"selectTenant"})
+    public Boolean selectTenant(@BodyParam(tag = "选中租户信息") GatewaySelectTenantReqDto req) {
         return authBizServe.selectTenant(req);
     }
 
@@ -89,10 +91,5 @@ public class GatewayAuthAction {
     public Boolean sendRegisterCustomerSms(@BodyParam(tag = "注册客户账号-发送短信验证码参数") SendRegisterCustomerSmsReqDto req) {
         return authBizServe.sendRegisterCustomerSms(req);
     }
-
-//    @GetJson(authors = {"0neBean"}, tag = "政策条款", path = {"findTermsPolicy"})
-//    public GatewayTermsPolicyVo findTermsPolicy(@UrlParam(tag = "应用唯一标识") String appKey, @UrlParam(tag = "条款唯一标识") String tpKey) {
-//        return termsPolicyService.findTermsPolicy(appKey, tpKey);
-//    }
 
 }

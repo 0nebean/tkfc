@@ -32,7 +32,7 @@ target/
 .externalToolBuilders
 
 # idea ignore
-.idea/
+common/.idea/
 *.ipr
 *.iml
 *.iws

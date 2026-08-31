@@ -235,7 +235,7 @@ public class CreateJavaToolES {
             data.put("description", descriptionText.getText());
             data.put("modelName", modelName);
             data.put("modelVarName", modelVarName);
-            data.put("indexName", modelVarName);
+            data.put("indexName", StringUtil.camelCaseToUnderline(modelVarName));
             data.put("modelPackageName", modelPkg);
             data.put("mapperPackageName", mapperPkg);
             data.put("servicePackageName", servicePkg);

@@ -2,6 +2,7 @@ package com.tkfc.welus.handler;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.tkfc.core.common.annotations.web.report.RecordeAccessLog;
+import com.tkfc.core.common.annotations.web.response.ConvertOssAccessUrl;
 import com.tkfc.core.common.annotations.web.response.NoWrapEnum;
 import com.tkfc.core.common.annotations.web.response.NoWrapResponse;
 import com.tkfc.core.common.pojo.BaseResponse;
@@ -22,7 +23,7 @@ import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Type;
 import java.util.Objects;
 import java.util.Optional;
@@ -52,6 +53,7 @@ public class ResponseJsonHandler extends BaseCovertWrapper implements ResponseBo
         if (Objects.isNull(returnType.getMethod().getAnnotation(NoWrapEnum.class))) {
             wrapFieldValue(body);
         }
+
         //打印日志
         ServletServerHttpRequest servletServerHttpRequest = (ServletServerHttpRequest) request;
         HttpServletRequest servletRequest = servletServerHttpRequest.getServletRequest();
@@ -74,27 +76,29 @@ public class ResponseJsonHandler extends BaseCovertWrapper implements ResponseBo
         if (Objects.isNull(body)) {
             body = new JSONObject();
         }
-
+        BaseResponse<Object> ok = BaseResponse.ok();
         //如果是BaseResponse直接返回
         Class<?> returnClazz = body.getClass();
         if (returnClazz.isAssignableFrom(BaseResponse.class)) {
-            return body;
-        }
-
-        BaseResponse<Object> ok = BaseResponse.ok();
-        //包装实体类
-        NoWrapResponse noWrapResponse = Optional.of(returnType).map(MethodParameter::getMethod).map(m -> m.getAnnotation(NoWrapResponse.class)).orElse(null);
-        if (Objects.isNull(body)) {
-            body = new JSONObject();
-        }
-        if (Objects.nonNull(noWrapResponse)) {
-            return body;
-        }
-        if (Objects.equals(body.getClass(), BaseResponse.class)) {
             ok = (BaseResponse) body;
         } else {
-            log.debug("ResponseBodyAnalysis beforeBodyWrite returnType is {} , do wrap", body.getClass().getSimpleName());
-            ok.setData(body);
+            //包装实体类
+            NoWrapResponse noWrapResponse = Optional.of(returnType).map(MethodParameter::getMethod).map(m -> m.getAnnotation(NoWrapResponse.class)).orElse(null);
+            if (Objects.isNull(body)) {
+                body = new JSONObject();
+            }
+            if (Objects.nonNull(noWrapResponse)) {
+                return body;
+            }
+            if (Objects.equals(body.getClass(), BaseResponse.class)) {
+                ok = (BaseResponse) body;
+            } else {
+                log.debug("ResponseBodyAnalysis beforeBodyWrite returnType is {} , do wrap", body.getClass().getSimpleName());
+                ok.setData(body);
+            }
+        }
+        if (returnType.getMethod().isAnnotationPresent(ConvertOssAccessUrl.class)) {
+            warpOssAccessUrl(ok.getData());
         }
         ok.setPath(path);
         ok.setTimestamp(now);

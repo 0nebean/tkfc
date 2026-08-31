@@ -9,10 +9,12 @@ import com.tkfc.boot.starter.jsch.dto.JschPipeline;
 import com.tkfc.boot.starter.jsch.enums.PipeExecStatusEnum;
 import com.tkfc.core.constants.StringPool;
 import com.tkfc.core.function.SerializableBiConsumer;
+import com.tkfc.core.toolkit.AsyncUtil;
 import com.tkfc.core.toolkit.CollectionUtil;
 import com.tkfc.core.toolkit.StringUtil;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -28,6 +30,8 @@ public abstract class BasicCmdExecutor extends JschConnect {
         add(100);
     }};
 
+    // 是否启用字符级别的实时输出（默认关闭，避免输出过于频繁）
+    private static final boolean ENABLE_CHAR_LEVEL_OUTPUT = false;
 
     /**
      * 执行命令
@@ -65,7 +69,124 @@ public abstract class BasicCmdExecutor extends JschConnect {
                 writeExecLog(line, logBuffer, pipeline, output);
             }
         } while (!execChannel.isClosed());
+
         return (SUCCESS_CODES.contains(execChannel.getExitStatus())) ? PipeExecStatusEnum.FINISH.getValue() : PipeExecStatusEnum.FINISH_WITH_ERROR.getValue();
+    }
+
+//    /**
+//     * 执行命令
+//     *
+//     * @param execChannel 执行管道
+//     * @param logBuffer   日志 buffer
+//     * @param pipeline    命令
+//     * @param output      命令执行响应输出对象
+//     * @param cmd         命令
+//     * @return 执行结果
+//     * @throws IOException          抛出的各种异常
+//     * @throws JSchException        抛出的各种异常
+//     * @throws InterruptedException 抛出的各种异常
+//     */
+//    protected Integer exec(ChannelExec execChannel, StringBuilder logBuffer, JschPipeline pipeline, SerializableBiConsumer<JschPipeline, String> output, String cmd) throws IOException, JSchException, InterruptedException {
+//        //装载执行参数
+//        execChannel.setCommand(cmd);
+//        execChannel.setErrStream(System.err);
+//        InputStream execStream = execChannel.getInputStream();
+//        InputStream errStream = execChannel.getErrStream();
+//
+//        //执行命令
+//        execChannel.connect();
+//        //等待响应结果
+//        AsyncUtil.sleep(200);
+//
+//        // 使用字节级别的读取实现实时流式输出
+//        byte[] buffer = new byte[1024];
+//        StringBuilder lineBuffer = new StringBuilder();
+//        long startTime = System.currentTimeMillis();
+//        long timeout = 30000; // 30秒超时
+//
+//        //如果执行命令返回内容不为空 返回执行内容
+//        do {
+//            boolean hasData;
+//
+//            // 处理标准输出流
+//            hasData = isHasData(logBuffer, pipeline, output, execStream, buffer, lineBuffer, false);
+//
+//            // 处理错误输出流
+//            hasData = isHasData(logBuffer, pipeline, output, errStream, buffer, lineBuffer, hasData);
+//
+//            // 如果没有数据可读且通道未关闭，短暂等待
+//            if (!hasData && !execChannel.isClosed()) {
+//                AsyncUtil.sleep(10);
+//            }
+//
+//            // 超时检查
+//            if (System.currentTimeMillis() - startTime > timeout) {
+//                writeExecLog("Command execution timeout", logBuffer, pipeline, output);
+//                break;
+//            }
+//
+//        } while (!execChannel.isClosed());
+//
+//        // 输出最后剩余的行
+//        if (lineBuffer.length() > 0) {
+//            writeExecLog(lineBuffer.toString(), logBuffer, pipeline, output);
+//        }
+//
+//        return (SUCCESS_CODES.contains(execChannel.getExitStatus())) ? PipeExecStatusEnum.FINISH.getValue() : PipeExecStatusEnum.FINISH_WITH_ERROR.getValue();
+//    }
+
+    /**
+     * 检查执行流中是否有数据，并处理这些数据。
+     *
+     * @param logBuffer 日志缓冲区，用于存储日志信息
+     * @param pipeline JschPipeline对象，包含管道配置和状态信息
+     * @param output 输出回调接口，用于处理输出数据
+     * @param execStream 执行命令后的输入流
+     * @param buffer 用于读取流数据的字节数组缓冲区
+     * @param lineBuffer 行缓冲区，临时存储行数据
+     * @param hasData 标记是否已经存在数据
+     * @return 返回布尔值表示执行流中是否存在可读的数据
+     * @throws IOException 如果在读取流时发生IO异常
+     */
+    private boolean isHasData(StringBuilder logBuffer, JschPipeline pipeline, SerializableBiConsumer<JschPipeline, String> output, InputStream execStream, byte[] buffer, StringBuilder lineBuffer, boolean hasData) throws IOException {
+        if (execStream.available() > 0) {
+            int bytesRead = execStream.read(buffer, 0, Math.min(buffer.length, execStream.available()));
+            if (bytesRead > 0) {
+                hasData = true;
+                String data = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
+                processStreamData(data, lineBuffer, logBuffer, pipeline, output);
+            }
+        }
+        return hasData;
+    }
+
+    /**
+     * 处理流数据，实现实时输出
+     *
+     * @param data        流数据
+     * @param lineBuffer  行缓冲区
+     * @param logBuffer   日志缓冲区
+     * @param pipeline    管道对象
+     * @param output      输出回调
+     */
+    private void processStreamData(String data, StringBuilder lineBuffer, StringBuilder logBuffer, JschPipeline pipeline, SerializableBiConsumer<JschPipeline, String> output) {
+        for (char c : data.toCharArray()) {
+            if (c == '\n') {
+                // 遇到换行符，输出完整的行
+                if (lineBuffer.length() > 0) {
+                    writeExecLog(lineBuffer.toString(), logBuffer, pipeline, output);
+                    lineBuffer.setLength(0); // 清空行缓冲区
+                }
+            } else if (c != '\r') {
+                // 忽略回车符，添加其他字符到行缓冲区
+                lineBuffer.append(c);
+
+                // 根据配置决定是否启用字符级别的实时输出
+                if (ENABLE_CHAR_LEVEL_OUTPUT && output != null) {
+                    output.accept(pipeline, String.valueOf(c));
+                }
+            }
+        }
     }
 
     /**

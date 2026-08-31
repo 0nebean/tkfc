@@ -11,7 +11,7 @@ import com.tkfc.welus.pojo.AccessLog;
 import com.tkfc.welus.interceptor.logger.AccessLogRecorder;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Objects;
 import java.util.Optional;
 

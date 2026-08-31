@@ -13,5 +13,13 @@ import com.tkfc.sdk.pojo.vo.GatewayTenantUserBindVo;
  */
 public interface GatewayTenantUserBindService extends BaseService<GatewayTenantUserBind, GatewayTenantUserBindVo> {
 
+    /**
+     * 将用户绑定到指定租户。
+     *
+     * @param ticketId 凭证ID，用于标识当前操作的上下文
+     * @param tenantId 租户ID，表示要将用户绑定到的租户
+     * @param userOpenId 用户的唯一标识符，用于识别待绑定的用户
+     */
+    void bindUserToTenant(String ticketId, String tenantId, String userOpenId);
 
 }

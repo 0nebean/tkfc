@@ -20,7 +20,6 @@ import lombok.*;
 @Builder
 public class GatewayApi extends BaseModel {
 
-
     /**
      * 应用标识
      */

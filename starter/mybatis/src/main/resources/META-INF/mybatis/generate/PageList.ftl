@@ -81,7 +81,6 @@
               ref="dataTable"
               row-key="id"
               size="small"
-              :max-height="tableHeight"
               :columns="formColumns"
               :data="formData"
               :indent-size="10"
@@ -115,6 +114,7 @@
                 :current="searchParam.pagination.currentPage"
                 show-elevator
                 show-sizer
+                show-total
                 @on-change="handlePage"
                 @on-page-size-change="handlePageSize"
         />
@@ -186,11 +186,6 @@ export default {
       ]
     }
   },
-  computed: {
-    tableHeight() {
-      return `${r"${this.store.useViewSizeStore().calHeight(70)}"}`
-    }
-  },
   mounted() {
     this.initDataTable()
   },
@@ -233,7 +228,6 @@ export default {
     },
     viewTableItem(id) {
       this.$refs.detailView.initDetailData(id, true)
-      this.showDetail = true
     },
     batchEditItem() {
       if (this.selectedIds.length > 1) {
@@ -256,10 +250,7 @@ export default {
       this.confirmModal = true
     },
     editTableItem(id) {
-      this.$refs.detailView.initDetailPreData(() => {
-        this.$refs.detailView.initDetailData(id, false)
-        this.showDetail = true
-      })
+      this.$refs.detailView.initDetailData(id, false)
     },
     deleteTableItem(item) {
       this.confirmType = 0
@@ -281,10 +272,8 @@ export default {
       })
     },
     showAddView() {
-      this.$refs.detailView.initDetailPreData(() => {
-        this.$refs.detailView.entityId = 0
-        this.showDetail = true
-      })
+      this.$refs.detailView.entityId = 0
+      this.$refs.detailView.initDetailData(0, false)
     },
     handleConfirmOk() {
       switch (this.confirmType) {

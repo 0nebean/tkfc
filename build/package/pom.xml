@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.tkfc</groupId>
+        <artifactId>dependencies</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../dependencies/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>com.tkfc.package</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <packaging>pom</packaging>
+
+    <name>package</name>
+    <description>构建成包依赖</description>
+
+    <!--MAVEN打包选择运行环境-->
+    <!-- 1:local(默认) 本地 2:dev:开发环境 3:test 4:uat 用户验收测试 5.pro:生产环境-->
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <properties>
+                <profileActive>dev</profileActive>
+            </properties>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <!-- 打包后的启动jar名称 -->
+                <finalName>app</finalName>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <includes>
+                            <include>gateway/*.tar.gz</include>
+                            <include>i18n/**</include>
+                            <include>templates/**</include>
+                            <include>static/**</include>
+                            <include>META-INF/**</include>
+                            <include>banner.txt</include>
+                            <include>*.properties</include>
+                            <include>*.yml</include>
+                            <include>*.yaml</include>
+                            <!-- 以上直接打入到启动jar包中 -->
+                        </includes>
+                        <excludes>
+                            <exclude>package/**</exclude>
+                        </excludes>
+                    </resource>
+
+                    <!-- 过滤配置文件到config目录 -->
+                    <resource>
+                        <directory>/${project.build.directory}/package/bin</directory>
+                        <filtering>true</filtering>
+                        <includes>
+                            <include>**/*.sh</include>
+                            <include>**/*.bat</include>
+                            <!-- 以上直接打入到启动jar包中 -->
+                        </includes>
+                        <targetPath>/${project.build.directory}/package/bin-temp</targetPath>
+                    </resource>
+                </resources>
+
+                <plugins>
+
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>install-jbpm</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>artifact</goal>
+                                </goals>
+                                <configuration>
+                                    <groupId>com.tkfc</groupId>
+                                    <artifactId>com.tkfc.package.tar.gz</artifactId>
+                                    <version>1.0.10-release</version>
+                                    <type>tar.gz</type>
+                                    <unpack>true</unpack>
+                                    <outputDirectory>${project.build.directory}/</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>/${project.build.directory}/package/assembly/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>fat</id>
+            <properties>
+                <profileActive>fat</profileActive>
+            </properties>
+            <build>
+                <!-- 打包后的启动jar名称 -->
+                <finalName>app</finalName>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <includes>
+                            <include>gateway/*.tar.gz</include>
+                            <include>i18n/**</include>
+                            <include>templates/**</include>
+                            <include>static/**</include>
+                            <include>META-INF/**</include>
+                            <include>banner.txt</include>
+                            <include>*.properties</include>
+                            <include>*.yml</include>
+                            <include>*.yaml</include>
+                            <!-- 以上直接打入到启动jar包中 -->
+                        </includes>
+                        <excludes>
+                            <exclude>package/**</exclude>
+                        </excludes>
+                    </resource>
+
+                    <!-- 过滤配置文件到config目录 -->
+                    <resource>
+                        <directory>/${project.build.directory}/package/bin</directory>
+                        <filtering>true</filtering>
+                        <includes>
+                            <include>**/*.sh</include>
+                            <include>**/*.bat</include>
+                            <!-- 以上直接打入到启动jar包中 -->
+                        </includes>
+                        <targetPath>/${project.build.directory}/package/bin-temp</targetPath>
+                    </resource>
+                </resources>
+
+                <plugins>
+
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>install-jbpm</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>artifact</goal>
+                                </goals>
+                                <configuration>
+                                    <groupId>com.tkfc</groupId>
+                                    <artifactId>com.tkfc.package.tar.gz</artifactId>
+                                    <version>1.0.10-release</version>
+                                    <type>tar.gz</type>
+                                    <unpack>true</unpack>
+                                    <outputDirectory>${project.build.directory}/</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>/${project.build.directory}/package/assembly/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>uat</id>
+            <properties>
+                <profileActive>uat</profileActive>
+            </properties>
+            <build>
+                <!-- 打包后的启动jar名称 -->
+                <finalName>app</finalName>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <includes>
+                            <include>gateway/*.tar.gz</include>
+                            <include>i18n/**</include>
+                            <include>templates/**</include>
+                            <include>static/**</include>
+                            <include>META-INF/**</include>
+                            <include>banner.txt</include>
+                            <include>*.properties</include>
+                            <include>*.yml</include>
+                            <include>*.yaml</include>
+                            <!-- 以上直接打入到启动jar包中 -->
+                        </includes>
+                        <excludes>
+                            <exclude>package/**</exclude>
+                        </excludes>
+                    </resource>
+
+                    <!-- 过滤配置文件到config目录 -->
+                    <resource>
+                        <directory>/${project.build.directory}/package/bin</directory>
+                        <filtering>true</filtering>
+                        <includes>
+                            <include>**/*.sh</include>
+                            <include>**/*.bat</include>
+                            <!-- 以上直接打入到启动jar包中 -->
+                        </includes>
+                        <targetPath>/${project.build.directory}/package/bin-temp</targetPath>
+                    </resource>
+                </resources>
+
+                <plugins>
+
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>install-jbpm</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>artifact</goal>
+                                </goals>
+                                <configuration>
+                                    <groupId>com.tkfc</groupId>
+                                    <artifactId>com.tkfc.package.tar.gz</artifactId>
+                                    <version>1.0.10-release</version>
+                                    <type>tar.gz</type>
+                                    <unpack>true</unpack>
+                                    <outputDirectory>${project.build.directory}/</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>/${project.build.directory}/package/assembly/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>pro</id>
+            <properties>
+                <profileActive>pro</profileActive>
+            </properties>
+            <build>
+                <!-- 打包后的启动jar名称 -->
+                <finalName>app</finalName>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <includes>
+                            <include>gateway/*.tar.gz</include>
+                            <include>i18n/**</include>
+                            <include>templates/**</include>
+                            <include>static/**</include>
+                            <include>META-INF/**</include>
+                            <include>banner.txt</include>
+                            <include>*.properties</include>
+                            <include>*.yml</include>
+                            <include>*.yaml</include>
+                            <!-- 以上直接打入到启动jar包中 -->
+                        </includes>
+                        <excludes>
+                            <exclude>package/**</exclude>
+                        </excludes>
+                    </resource>
+
+                    <!-- 过滤配置文件到config目录 -->
+                    <resource>
+                        <directory>/${project.build.directory}/package/bin</directory>
+                        <filtering>true</filtering>
+                        <includes>
+                            <include>**/*.sh</include>
+                            <include>**/*.bat</include>
+                            <!-- 以上直接打入到启动jar包中 -->
+                        </includes>
+                        <targetPath>/${project.build.directory}/package/bin-temp</targetPath>
+                    </resource>
+                </resources>
+
+                <plugins>
+
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>install-jbpm</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>artifact</goal>
+                                </goals>
+                                <configuration>
+                                    <groupId>com.tkfc</groupId>
+                                    <artifactId>com.tkfc.package.tar.gz</artifactId>
+                                    <version>1.0.10-release</version>
+                                    <type>tar.gz</type>
+                                    <unpack>true</unpack>
+                                    <outputDirectory>${project.build.directory}/</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>/${project.build.directory}/package/assembly/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>pom</id>
+            <properties>
+                <profileActive>pom</profileActive>
+            </properties>
+        </profile>
+    </profiles>
+
+
+</project>

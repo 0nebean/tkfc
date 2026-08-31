@@ -50,13 +50,22 @@ public class EnumsUtil {
      * @since 2021-12-05 23:42:05
      */
     public static <T> String getDescriptionByValue(Class<?> clazz, T value) {
+        if (value == null) {
+            return null;
+        }
         BaseEnums<?> enumConstant = (BaseEnums<?>) clazz.getEnumConstants()[0];
         for (BaseEnums<?> baseEnums : enumConstant.getValues()) {
-            if (baseEnums.getValue().equals(value)) {
+            Object enumValue = baseEnums.getValue();
+            if ((enumValue instanceof String enumValueStr && value instanceof String valueStr && enumValueStr.equalsIgnoreCase(valueStr)) || Objects.equals(enumValue, value)) {
                 return baseEnums.getDescription();
             }
+            if (value instanceof String valueStr && baseEnums instanceof Enum<?> enumMember) {
+                if (enumMember.name().equalsIgnoreCase(valueStr)) {
+                    return baseEnums.getDescription();
+                }
+            }
         }
-        return "";
+        return value.toString();
     }
 
     /**

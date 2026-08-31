@@ -36,11 +36,10 @@ public class DateUtil {
     private static final SimpleDateFormat LOG_TIME_FORMAT_TEMPLATE = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
     private static final SimpleDateFormat FILE_NAME_TIME_FORMAT_TEMPLATE = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS");
 
-    private static final int PRESS_DATA_YEAR = 2023;
-    // 月份从0 1 2 3 计算
+    private static final int PRESS_DATA_YEAR = 2026;
+    // Calendar.MONTH 从0开始：0=1月，3=4月
     private static final int PRESS_DATA_MONTH = 3;
-    private static final int PRESS_DATA_DAY = 16;
-
+    private static final int PRESS_DATA_DAY = 25;
 
     //=================================== cover date ===================================
 
@@ -496,7 +495,12 @@ public class DateUtil {
         pressData.set(Calendar.YEAR, PRESS_DATA_YEAR);
         pressData.set(Calendar.MONTH, PRESS_DATA_MONTH);
         pressData.set(Calendar.DAY_OF_MONTH, PRESS_DATA_DAY);
+        pressData.set(Calendar.HOUR_OF_DAY, 0);
+        pressData.set(Calendar.MINUTE, 0);
+        pressData.set(Calendar.SECOND, 0);
+        pressData.set(Calendar.MILLISECOND, 0);
         long time1 = pressData.getTimeInMillis();
+
         Calendar cd = Calendar.getInstance();
         if (Objects.nonNull(year) && Objects.nonNull(month) && Objects.nonNull(day)) {
             cd.set(Calendar.YEAR, year);
@@ -506,7 +510,9 @@ public class DateUtil {
         cd.set(Calendar.HOUR_OF_DAY, 0);
         cd.set(Calendar.MINUTE, 0);
         cd.set(Calendar.SECOND, 0);
+        cd.set(Calendar.MILLISECOND, 0);
         long time2 = cd.getTimeInMillis();
+
         long between_days = (time2 - time1) / (1000 * 3600 * 24);
         return Integer.parseInt(String.valueOf(between_days + 1));
     }

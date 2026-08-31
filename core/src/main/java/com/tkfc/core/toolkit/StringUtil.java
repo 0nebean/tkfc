@@ -27,6 +27,14 @@ public class StringUtil {
     // 创建 Pattern 对象
     private static final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);
 
+    // 预编译正则表达式，提升多次调用的性能
+    // 1. 匹配连续的<br>标签（兼容大小写，忽略标签间空白/换行）
+    private static final Pattern CONSECUTIVE_BR_PATTERN = Pattern.compile("(<br\\s*/?>\\s*)+", Pattern.CASE_INSENSITIVE);
+    // 2. 匹配一个或多个换行符（\n、\r、\r\n 都包含），并清理换行符前后的空白
+    private static final Pattern CONSECUTIVE_NEWLINE_PATTERN = Pattern.compile("\\s*[\r\n]+\\s*");
+    // 3. 匹配一个或多个空白字符（空格、制表符等），但不包含换行符（避免影响已处理的换行）
+    private static final Pattern CONSECUTIVE_SPACE_PATTERN = Pattern.compile("[ \\t]+");
+
     /**
      * 判断邮箱是否合法
      *
@@ -116,20 +124,22 @@ public class StringUtil {
      * @return 字符串
      */
     public static String replaceUnderLineToClassNameCase(String str) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(str);
-        int count = sb.indexOf("_");
-        while (count != 0) {
-            int num = sb.indexOf("_", count);
-            count = num + 1;
-            if (num != -1) {
-                char ss = sb.charAt(count);
-                char ia = (char) (ss - 32);
-                sb.replace(count, count + 1, ia + StringPool.EMPTY);
+        if (isEmpty(str)) {
+            return StringPool.EMPTY;
+        }
+        String[] parts = str.split(StringPool.UNDERSCORE);
+        StringBuilder result = new StringBuilder();
+        for (String part : parts) {
+            if (isEmpty(part)) {
+                continue;
+            }
+            String lowerPart = part.toLowerCase(Locale.ROOT);
+            result.append(Character.toUpperCase(lowerPart.charAt(0)));
+            if (lowerPart.length() > 1) {
+                result.append(lowerPart.substring(1));
             }
         }
-        String result = sb.toString().replaceAll("_", StringPool.EMPTY);
-        return org.apache.commons.lang3.StringUtils.capitalize(result);
+        return result.toString();
     }
 
 
@@ -939,14 +949,79 @@ public class StringUtil {
         if (ipAddress == null || ipAddress.trim().isEmpty()) {
             return false;
         }
-        
+
         // 移除端口号（如果存在）
         String cleanIp = ipAddress.split(":")[0];
-        
+
         // IP地址正则表达式
         String ipRegex = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
         Pattern ipPattern = Pattern.compile(ipRegex);
-        
+
         return ipPattern.matcher(cleanIp).matches();
+    }
+
+    /**
+     * 根据起始索引和指定长度截取字符串
+     * @param str 原字符串
+     * @param beginIndex 起始索引（从0开始）
+     * @param length 要截取的长度
+     * @return 截取后的子串，参数非法时返回空字符串
+     */
+    public static String substringByLength(String str, int beginIndex, int length) {
+        // 边界检查：原字符串为空、起始索引非法、长度小于等于0，直接返回空字符串
+        if (str == null || str.isEmpty() || beginIndex < 0 || beginIndex >= str.length() || length <= 0) {
+            return "";
+        }
+
+        // 计算结束索引：起始索引 + 长度
+        int endIndex = beginIndex + length;
+        // 确保结束索引不超过字符串长度（避免越界）
+        endIndex = Math.min(endIndex, str.length());
+
+        // 调用原生substring方法截取
+        return str.substring(beginIndex, endIndex);
+    }
+
+    /**
+     * 统一格式化文本：
+     * 1. 合并连续的<br>标签为单个<br>
+     * 2. 合并多个换行符为一个\n
+     * 3. 合并连续的多个空格/制表符为单个空格
+     * @param originalText 原始文本（可包含HTML标签、换行符、多空格）
+     * @return 格式化后的文本
+     */
+    public static String collapseConsecutiveNewLineAndSpace(String originalText) {
+        // 边界处理：如果输入为空，直接返回原内容
+        if (originalText == null || originalText.isEmpty()) {
+            return originalText;
+        }
+
+        String processedText = originalText;
+        // 第一步：合并连续的<br>标签为单个<br>
+        processedText = CONSECUTIVE_BR_PATTERN.matcher(processedText).replaceAll("<br>");
+        // 第二步：合并多个换行符（含前后空白）为单个换行符\n
+        processedText = CONSECUTIVE_NEWLINE_PATTERN.matcher(processedText).replaceAll("\n");
+        // 第三步：将连续的空格/制表符缩减为单个空格
+        processedText = CONSECUTIVE_SPACE_PATTERN.matcher(processedText).replaceAll(" ");
+        return processedText;
+    }
+
+    /**
+     * 将所有换行符替换为空格，并合并连续的空格为单个空格
+     * @param originalText 原始文本
+     * @return 处理后的文本
+     */
+    public static String replaceNewLineWithSpace(String originalText) {
+        // 边界处理：如果输入为空，直接返回原内容
+        if (originalText == null || originalText.isEmpty()) {
+            return originalText;
+        }
+
+        String processedText = originalText;
+        // 第一步：将所有换行符（\n, \r\n, \r）替换为空格
+        processedText = processedText.replaceAll("\\r\\n|\\r|\\n", " ");
+        // 第二步：将连续的空格/制表符缩减为单个空格
+        processedText = CONSECUTIVE_SPACE_PATTERN.matcher(processedText).replaceAll(" ");
+        return processedText;
     }
 }

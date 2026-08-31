@@ -20,4 +20,10 @@ public interface FieldCovertWrapper {
      * @param target 目标
      */
     void warpFieldJsonValue(Object target);
+
+    /**
+     *包装oss链接字段
+     * @param target 目标
+     */
+    void warpOssAccessUrl(Object target);
 }

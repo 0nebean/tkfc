@@ -30,13 +30,16 @@
         <id column="id" jdbcType="INTEGER" property="id"/>
         <#if properties?exists>
             <#list properties as item>
-                <#if item.returnType != 'com.alibaba.fastjson2.JSONObject' && item.returnType != 'com.alibaba.fastjson2.JSONArray'>
+                <#if item.returnType?ends_with("Enum")>
+                    <result column="${item.fieldNameUnderLine}" property="${item.field.name}" javaType="${item.returnType}" typeHandler="com.tkfc.boot.starter.mybatis.builder.EnumValueTypeHandler"/>
+                </#if>
+                <#if !item.returnType?ends_with("Enum") && item.returnType != 'com.alibaba.fastjson2.JSONObject' && item.returnType != 'com.alibaba.fastjson2.JSONArray'>
                     <result column="${item.fieldNameUnderLine}" property="${item.field.name}"/>
                 </#if>
-                <#if item.returnType == 'com.alibaba.fastjson2.JSONArray'>
+                <#if !item.returnType?ends_with("Enum") && item.returnType == 'com.alibaba.fastjson2.JSONArray'>
                     <result column="${item.fieldNameUnderLine}" jdbcType="OTHER" property="${item.field.name}" typeHandler="com.tkfc.boot.starter.mybatis.builder.JsonArrayHandler"/>
                 </#if>
-                <#if item.returnType == 'com.alibaba.fastjson2.JSONObject'>
+                <#if !item.returnType?ends_with("Enum") && item.returnType == 'com.alibaba.fastjson2.JSONObject'>
                     <result column="${item.fieldNameUnderLine}" jdbcType="OTHER" property="${item.field.name}" typeHandler="com.tkfc.boot.starter.mybatis.builder.JsonObjectHandler"/>
                 </#if>
             </#list>
@@ -333,13 +336,27 @@
             </#if>
             <include refid="common.dataPermissionPermissionSql"/>
             <include refid="common.groupBySql"/>
+            <#if ((outerSystemModel!false) || (customSystemField!false)) && orderBy?? && orderBy != ''>
+            <choose>
+                <when test="sqlWrapper != null and sqlWrapper.sort != null and sqlWrapper.sort.orderBy != '' and sqlWrapper.sort.orderBy != 'id'">
+                    order by t.${r"${sqlWrapper.sort.orderBy}"}
+                    <if test="sqlWrapper.sort.sort != ''">
+                        ${r"${sqlWrapper.sort.sort}"}
+                    </if>
+                </when>
+                <otherwise>
+                    order by t.${orderBy}
+                </otherwise>
+            </choose>
+            <#else>
             <include refid="common.orderBySql"/>
             <include refid="common.sortSql"/>
+            </#if>
         </where>
     </select>
 
     <select id="count" resultType="long">
-        SELECT COUNT(t.id) FROM
+        SELECT COUNT(<#if (outerSystemModel!false) || (customSystemField!false)>1<#else>t.id</#if>) FROM
         <include refid="tableName"/>
         t
         <where>

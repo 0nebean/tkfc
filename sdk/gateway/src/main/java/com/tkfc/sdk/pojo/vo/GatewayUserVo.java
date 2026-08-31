@@ -22,11 +22,6 @@ import lombok.*;
 public class GatewayUserVo extends BaseVo<GatewayUser> {
 
     /**
-     * 租户ID
-     */
-    @BodyProperty(tag = "租户ID")
-    private String tenantId;
-    /**
      * 邮件
      */
     @BodyProperty(tag = "邮件")

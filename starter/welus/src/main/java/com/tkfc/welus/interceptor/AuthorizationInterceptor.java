@@ -11,8 +11,8 @@ import com.tkfc.welus.interceptor.checker.PermissionChecker;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
 
 /**
@@ -27,8 +27,7 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // 如果handler是方法处理器
-        if (handler instanceof HandlerMethod) {
-            HandlerMethod handlerMethod = (HandlerMethod) handler;
+        if (handler instanceof HandlerMethod handlerMethod) {
             Method method = handlerMethod.getMethod();
             // 检查是否有特定注解（假设注解名为 @RequiredPermission）
             if (method.isAnnotationPresent(Authenticated.class)) {
@@ -43,6 +42,7 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
                     return false;
                 }
             }
+
         }
         // 继续执行请求
         return true;

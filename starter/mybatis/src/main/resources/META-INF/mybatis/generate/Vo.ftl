@@ -9,29 +9,64 @@ import com.tkfc.core.common.annotations.web.param.BodyProperty;
 import com.tkfc.boot.starter.mybatis.extend.BaseVo;
 import ${modelPackageName}.${modelName};
 import lombok.*;
+<#assign hasEnumField = false />
+<#if fieldArr?exists>
+    <#list fieldArr as item>
+        <#if item.isEnum>
+            <#assign hasEnumField = true />
+        </#if>
+    </#list>
+</#if>
+<#if hasEnumField>
+import com.tkfc.core.common.annotations.web.response.Wrap;
+import com.tkfc.core.common.annotations.web.response.Enum;
+</#if>
+<#if fieldArr?exists>
+    <#list fieldArr as item>
+        <#if item.isEnum>
+import ${item.enumPackageName}.${item.enumClassName};
+        </#if>
+    </#list>
+</#if>
 
 
+<#assign hasBigDecimal = false />
+<#assign hasLocalDateTime = false />
+<#assign hasJSONObject = false />
+<#assign hasJSONArray = false />
 <#if fieldArr?exists>
     <#list fieldArr as item>
         <#if item.columnName != 'id' && item.columnName != 'createTime' && item.columnName != 'updateTime' &&
         item.columnName != 'operatorId' && item.columnName != 'operatorName' && item.columnName != 'isDeleted'>
             <#if item.columnType == 'BigDecimal'>
-import java.math.BigDecimal;
+                <#assign hasBigDecimal = true />
             </#if>
             <#if item.columnType == 'LocalDateTime'>
-import java.time.LocalDateTime;
+                <#assign hasLocalDateTime = true />
             </#if>
             <#if item.columnType == 'JSONObject'>
-import com.alibaba.excel.annotation.ExcelIgnore;
-import com.alibaba.fastjson2.JSONObject;
+                <#assign hasJSONObject = true />
             </#if>
             <#if item.columnType == 'JSONArray'>
-import com.alibaba.excel.annotation.ExcelIgnore;
-import com.alibaba.fastjson2.JSONArray;
-
+                <#assign hasJSONArray = true />
             </#if>
         </#if>
     </#list>
+</#if>
+<#if hasBigDecimal>
+import java.math.BigDecimal;
+</#if>
+<#if hasLocalDateTime>
+import java.time.LocalDateTime;
+</#if>
+<#if hasJSONObject || hasJSONArray>
+import com.alibaba.excel.annotation.ExcelIgnore;
+</#if>
+<#if hasJSONObject>
+import com.alibaba.fastjson2.JSONObject;
+</#if>
+<#if hasJSONArray>
+import com.alibaba.fastjson2.JSONArray;
 </#if>
 
 /**
@@ -49,6 +84,9 @@ import com.alibaba.fastjson2.JSONArray;
 @ColumnWidth(25)
 @HeadRowHeight(20)
 @ContentRowHeight(18)
+<#if hasEnumField>
+@Wrap
+</#if>
 public class ${modelName}Vo extends BaseVo<${modelName}> {
 
 
@@ -64,8 +102,15 @@ public class ${modelName}Vo extends BaseVo<${modelName}> {
     <#else>
     @ExcelProperty(value = "${item.comment}")
     </#if>
+    <#if item.isEnum>
+    @Enum(using = ${item.enumClassName}.class)
+    </#if>
     @BodyProperty(tag = "${item.comment}")
+    <#if item.isEnum>
+    private String ${item.columnName};
+    <#else>
     private ${item.columnType} ${item.columnName};
+    </#if>
         </#if>
     </#list>
 </#if>
